@@ -3842,3 +3842,35 @@ func TestGolden_FMSDKKeys(t *testing.T) {
 		{ReleaseStageKey: "production", SDKKey: "dt01.web_us_Klmnopqrst.********", Type: "web", CreatedDisplay: "-"},
 	}, fmGetFormats)
 }
+
+// The structured formats of the override commands print the API's
+// overrides; the table views are cmd goldens.
+func TestGolden_FMOverrides(t *testing.T) {
+	items := []featuremanagement.FeatureMyOverrides{
+		{FeatureKey: "new-checkout", FeatureName: "New checkout", Overrides: []featuremanagement.ReleaseStageMyOverride{
+			{ReleaseStageKey: "development", ReleaseStageName: "Development", VariantKey: "variation-a", VariantName: "Variation A"}}},
+	}
+	structured := []string{"json", "yaml", "toon"}
+	assertFMGetGoldens(t, "override", items, structured)
+
+	on := "variation-a"
+	at := time.Date(2026, 11, 3, 14, 30, 0, 0, time.UTC)
+	for _, tc := range []struct {
+		name string
+		v    any
+	}{
+		{"fm-override-feature", &featuremanagement.FeatureOverrides{FeatureKey: "new-checkout", Overrides: []featuremanagement.MyOverride{
+			{ReleaseStageKey: "development", VariantKey: &on, LastModifiedTime: &at}, {ReleaseStageKey: "production"}}}},
+		{"fm-overrides-summary", &featuremanagement.OverridesSummary{TargetingKeys: []string{"user-1"}, Items: items}},
+	} {
+		for _, format := range structured {
+			t.Run(tc.name+"/"+format, func(t *testing.T) {
+				var buf bytes.Buffer
+				if err := NewPrinterWithWriter(format, &buf).Print(tc.v); err != nil {
+					t.Fatalf("Print failed: %v", err)
+				}
+				assertGolden(t, "describe/"+tc.name+"-"+format, buf.String())
+			})
+		}
+	}
+}

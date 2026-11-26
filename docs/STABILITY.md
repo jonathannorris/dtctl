@@ -210,9 +210,9 @@ deprecation cycle. Nothing stated here is relaxed by reaching 1.0.
 
 ## Summary
 
-- commands: 269 stable, 22 experimental, 29 development
+- commands: 269 stable, 22 experimental, 31 development
 - global flags (accepted on every command): 11
-- entries below (commands + flags): 1001
+- entries below (commands + flags): 1003
 
 ## Surface
 
@@ -593,6 +593,7 @@ describe fm context-attribute        development
 describe fm feature                  development
 describe fm feature-targeting        development
   --stage                            development
+describe fm overrides                development
 describe fm project                  development
 describe fm release-stage            development
 describe function                    stable
@@ -829,6 +830,7 @@ get fm context-attributes            development
 get fm feature-targeting             development
   --stage                            development
 get fm features                      development
+get fm overrides                     development
 get fm projects                      development
 get fm release-stages                development
 get fm sdk-keys                      development

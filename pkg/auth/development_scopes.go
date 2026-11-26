@@ -20,6 +20,7 @@ var developmentResources = map[string]string{
 	"fm/feature-targeting": "feature-management",
 	"fm/context-attribute": "feature-management",
 	"fm/sdk-key":           "feature-management",
+	"fm/override":          "feature-management",
 }
 
 // DevelopmentResourceFeatures returns a copy of the resource-to-feature map,

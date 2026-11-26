@@ -256,6 +256,12 @@ var ResourceScopes = map[string]AccessScopes{
 	"fm/feature-targeting": {Read: []string{"feature-management:release-stage-targetings:read"}},
 	"fm/context-attribute": {Read: []string{"feature-management:context-attributes:read"}},
 	"fm/sdk-key":           {Read: []string{"feature-management:sdk-keys:read"}},
+	// The caller's own overrides: the API requires all three read scopes.
+	"fm/override": {Read: []string{
+		"feature-management:projects:read",
+		"feature-management:features:read",
+		"feature-management:release-stages:read",
+	}},
 }
 
 // sharing reads the document's metadata for the ownership check, then works

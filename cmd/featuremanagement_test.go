@@ -55,19 +55,20 @@ func TestDevelopmentResourceFeaturesAreRegistered(t *testing.T) {
 	}
 }
 
-// fmLeafScopes is the read scope each fm leaf requires, keyed by the leaf's
-// command name on both verbs.
-var fmLeafScopes = map[string]string{
-	"projects":           "feature-management:projects:read",
-	"project":            "feature-management:projects:read",
-	"release-stages":     "feature-management:release-stages:read",
-	"release-stage":      "feature-management:release-stages:read",
-	"features":           "feature-management:features:read",
-	"feature":            "feature-management:features:read",
-	"feature-targeting":  "feature-management:release-stage-targetings:read",
-	"context-attributes": "feature-management:context-attributes:read",
-	"context-attribute":  "feature-management:context-attributes:read",
-	"sdk-keys":           "feature-management:sdk-keys:read",
+// fmLeafScopes is the read scopes each fm leaf requires, sorted, keyed by
+// the leaf's command name on both verbs.
+var fmLeafScopes = map[string][]string{
+	"projects":           {"feature-management:projects:read"},
+	"project":            {"feature-management:projects:read"},
+	"release-stages":     {"feature-management:release-stages:read"},
+	"release-stage":      {"feature-management:release-stages:read"},
+	"features":           {"feature-management:features:read"},
+	"feature":            {"feature-management:features:read"},
+	"feature-targeting":  {"feature-management:release-stage-targetings:read"},
+	"context-attributes": {"feature-management:context-attributes:read"},
+	"context-attribute":  {"feature-management:context-attributes:read"},
+	"sdk-keys":           {"feature-management:sdk-keys:read"},
+	"overrides":          {"feature-management:features:read", "feature-management:projects:read", "feature-management:release-stages:read"},
 }
 
 // With the opt-in, the catalog lists the group-qualified scope on each leaf
@@ -88,13 +89,13 @@ func TestFeatureManagementScopesResolve(t *testing.T) {
 				t.Errorf("%s fm %s has no entry in fmLeafScopes", verb, name)
 				continue
 			}
-			if !slices.Equal(leaf.RequiredScopes, []string{want}) {
-				t.Errorf("%s fm %s required scopes = %v, want [%s]", verb, name, leaf.RequiredScopes, want)
+			if got := slices.Sorted(slices.Values(leaf.RequiredScopes)); !slices.Equal(got, want) {
+				t.Errorf("%s fm %s required scopes = %v, want %v", verb, name, got, want)
 			}
 		}
 	}
 
-	for _, path := range [][]string{{"get", "fm", "projects"}, {"get", "fm", "release-stages"}, {"describe", "fm", "release-stage"}} {
+	for _, path := range [][]string{{"get", "fm", "projects"}, {"get", "fm", "release-stages"}, {"describe", "fm", "release-stage"}, {"describe", "fm", "overrides"}} {
 		c, _, err := rootCmd.Find(path)
 		if err != nil {
 			t.Fatal(err)
@@ -102,8 +103,8 @@ func TestFeatureManagementScopesResolve(t *testing.T) {
 		want := fmLeafScopes[c.Name()]
 		verb, resource := verbResource(c)
 		got, req := scopesForInvocation(c, verb, resource)
-		if req != scopeRequirementKnown || !slices.Equal(got, []string{want}) {
-			t.Errorf("--check-scopes for %v = %v (%v), want [%s]", path, got, req, want)
+		if got = slices.Sorted(slices.Values(got)); req != scopeRequirementKnown || !slices.Equal(got, want) {
+			t.Errorf("--check-scopes for %v = %v (%v), want %v", path, got, req, want)
 		}
 	}
 
@@ -116,7 +117,7 @@ func TestFeatureManagementScopesResolve(t *testing.T) {
 	if shown := shownResource(c, verb, resource); shown != "fm projects" {
 		t.Errorf("shown resource = %q, want \"fm projects\"", shown)
 	}
-	msg := (&ScopeError{Verb: verb, Resource: shownResource(c, verb, resource), Missing: []string{fmLeafScopes["projects"]}}).Error()
+	msg := (&ScopeError{Verb: verb, Resource: shownResource(c, verb, resource), Missing: fmLeafScopes["projects"]}).Error()
 	if !strings.Contains(msg, `"get fm projects"`) {
 		t.Errorf("scope error = %q, want it to name \"get fm projects\"", msg)
 	}
@@ -326,4 +327,54 @@ func TestDescribeFMContextAttributeTableGolden_Unused(t *testing.T) {
 		ContextKey: "targetingKey", Version: 1, UsagesDisplay: "0", BuiltInDisplay: "yes",
 	}, nil)
 	cmdtestutil.AssertGoldenStripped(t, "describe-fm-context-attribute/table-unused", buf.String())
+}
+
+func TestDescribeFMOverridesTableGolden(t *testing.T) {
+	var buf bytes.Buffer
+	printFMOverridesDescribe(&buf, "checkout", &featuremanagement.OverridesSummary{
+		TargetingKeys: []string{"user-1", "device-2"},
+		Items: []featuremanagement.FeatureMyOverrides{
+			{FeatureKey: "new-checkout", FeatureName: "New checkout", Overrides: []featuremanagement.ReleaseStageMyOverride{
+				{ReleaseStageKey: "development", VariantKey: "variation-a"}, {ReleaseStageKey: "staging", VariantKey: "baseline"}}},
+			{FeatureKey: "pricing", FeatureName: "Pricing", Overrides: []featuremanagement.ReleaseStageMyOverride{
+				{ReleaseStageKey: "development", VariantKey: "on"}}},
+		},
+	})
+	cmdtestutil.AssertGoldenStripped(t, "describe-fm-overrides/table", buf.String())
+}
+
+func TestDescribeFMOverridesTableGolden_Empty(t *testing.T) {
+	var buf bytes.Buffer
+	printFMOverridesDescribe(&buf, "checkout", &featuremanagement.OverridesSummary{TargetingKeys: []string{}, Items: []featuremanagement.FeatureMyOverrides{}})
+	cmdtestutil.AssertGoldenStripped(t, "describe-fm-overrides/table-empty", buf.String())
+}
+
+// get fm overrides prints rows in its tabular formats and the API's
+// overrides otherwise.
+func TestGetFMOverridesTableGolden(t *testing.T) {
+	on := "variation-a"
+	at := time.Date(2026, 11, 3, 14, 30, 0, 0, time.UTC)
+	project := featuremanagement.ProjectOverrideRows([]featuremanagement.FeatureMyOverrides{
+		{FeatureKey: "new-checkout", FeatureName: "New checkout", Overrides: []featuremanagement.ReleaseStageMyOverride{
+			{ReleaseStageKey: "development", ReleaseStageName: "Development", VariantKey: "variation-a", VariantName: "Variation A"}}},
+	})
+	feature := featuremanagement.FeatureOverrideRows(&featuremanagement.FeatureOverrides{
+		FeatureKey: "new-checkout",
+		Overrides: []featuremanagement.MyOverride{
+			{ReleaseStageKey: "development", VariantKey: &on, LastModifiedTime: &at},
+			{ReleaseStageKey: "production"},
+		},
+	})
+	for _, format := range []string{"table", "wide"} {
+		var buf bytes.Buffer
+		if err := output.NewPrinterWithWriter(format, &buf).PrintList(project); err != nil {
+			t.Fatal(err)
+		}
+		cmdtestutil.AssertGoldenStripped(t, "get-fm-overrides/project-"+format, buf.String())
+	}
+	var buf bytes.Buffer
+	if err := output.NewPrinterWithWriter("table", &buf).PrintList(feature); err != nil {
+		t.Fatal(err)
+	}
+	cmdtestutil.AssertGoldenStripped(t, "get-fm-overrides/feature-table", buf.String())
 }
