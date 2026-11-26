@@ -1,0 +1,10 @@
+Key:             checkout
+Name:            Checkout
+Description:     Flags for the checkout flow
+Owner:           00000000-0000-4000-8000-0000000000a1
+Maintainers:     00000000-0000-4000-8000-0000000000a2, 00000000-0000-4000-8000-0000000000a3
+Change Requests: on
+Version:         4
+Created:         2026-10-01 08:00:00 by 00000000-0000-4000-8000-0000000000a1
+Last Modified:   2026-11-03 14:30:00 by 00000000-0000-4000-8000-0000000000a2
+Operations:      write, delete

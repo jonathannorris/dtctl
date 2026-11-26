@@ -1,0 +1,20 @@
+key: checkout
+name: Checkout
+description: Flags for the checkout flow
+owner: 00000000-0000-4000-8000-0000000000a1
+maintainers:
+  - 00000000-0000-4000-8000-0000000000a2
+  - 00000000-0000-4000-8000-0000000000a3
+settings:
+  changeRequests:
+    enabled: true
+modificationInfo:
+  createdBy: 00000000-0000-4000-8000-0000000000a1
+  createdTime: 2026-10-01T08:00:00Z
+  lastModifiedBy: 00000000-0000-4000-8000-0000000000a2
+  lastModifiedTime: 2026-11-03T14:30:00Z
+resourceContext:
+  operations:
+    - write
+    - delete
+version: 4

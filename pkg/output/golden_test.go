@@ -22,6 +22,7 @@ import (
 	"github.com/Dynatrace/dtctl/pkg/resources/dqlprocessorverify"
 	"github.com/Dynatrace/dtctl/pkg/resources/edgeconnect"
 	"github.com/Dynatrace/dtctl/pkg/resources/extension"
+	"github.com/Dynatrace/dtctl/pkg/resources/featuremanagement"
 	"github.com/Dynatrace/dtctl/pkg/resources/gcpconnection"
 	"github.com/Dynatrace/dtctl/pkg/resources/gcpmonitoringconfig"
 	"github.com/Dynatrace/dtctl/pkg/resources/hub"
@@ -3586,6 +3587,91 @@ func TestGolden_GetAction(t *testing.T) {
 				t.Fatalf("Print failed: %v", err)
 			}
 			assertGolden(t, "get/action-single-"+name, buf.String())
+		})
+	}
+}
+
+// fmProjectFixtures returns Feature Management projects covering change
+// requests on and off, maintainers and none, and a resourceContext.
+func fmProjectFixtures() []featuremanagement.Project {
+	created := time.Date(2026, 10, 1, 8, 0, 0, 0, time.UTC)
+	modified := time.Date(2026, 11, 3, 14, 30, 0, 0, time.UTC)
+	on, off := true, false
+	return []featuremanagement.Project{
+		{
+			Key:                   "checkout",
+			Name:                  "Checkout",
+			Description:           "Flags for the checkout flow",
+			Owner:                 "00000000-0000-4000-8000-0000000000a1",
+			Maintainers:           []string{"00000000-0000-4000-8000-0000000000a2", "00000000-0000-4000-8000-0000000000a3"},
+			Settings:              featuremanagement.ProjectSettings{ChangeRequests: &featuremanagement.ChangeRequestSettings{Enabled: &on}},
+			ChangeRequestsDisplay: "on",
+			ModificationInfo: featuremanagement.ModificationInfo{
+				CreatedBy: "00000000-0000-4000-8000-0000000000a1", CreatedTime: created,
+				LastModifiedBy: "00000000-0000-4000-8000-0000000000a2", LastModifiedTime: modified,
+			},
+			LastModifiedDisplay: "2026-11-03 14:30:00",
+			ResourceContext:     &featuremanagement.ResourceContext{Operations: []string{"write", "delete"}},
+			Version:             4,
+		},
+		{
+			Key:                   "payments",
+			Name:                  "Payments",
+			Owner:                 "00000000-0000-4000-8000-0000000000b1",
+			Maintainers:           []string{},
+			Settings:              featuremanagement.ProjectSettings{ChangeRequests: &featuremanagement.ChangeRequestSettings{Enabled: &off}},
+			ChangeRequestsDisplay: "off",
+			ModificationInfo: featuremanagement.ModificationInfo{
+				CreatedBy: "00000000-0000-4000-8000-0000000000b1", CreatedTime: created,
+				LastModifiedBy: "00000000-0000-4000-8000-0000000000b1", LastModifiedTime: created,
+			},
+			LastModifiedDisplay: "2026-10-01 08:00:00",
+			Version:             1,
+		},
+	}
+}
+
+func TestGolden_GetFMProjects(t *testing.T) {
+	projects := fmProjectFixtures()
+
+	formats := map[string]string{
+		"table": "table",
+		"wide":  "wide",
+		"json":  "json",
+		"yaml":  "yaml",
+		"csv":   "csv",
+		"toon":  "toon",
+	}
+
+	for name, format := range formats {
+		t.Run(name, func(t *testing.T) {
+			var buf bytes.Buffer
+			printer := NewPrinterWithWriter(format, &buf)
+			if err := printer.PrintList(projects); err != nil {
+				t.Fatalf("PrintList failed: %v", err)
+			}
+			assertGolden(t, "get/fm-projects-"+name, buf.String())
+		})
+	}
+}
+
+func TestGolden_DescribeFMProject(t *testing.T) {
+	p := fmProjectFixtures()[0]
+
+	formats := map[string]string{
+		"json": "json",
+		"yaml": "yaml",
+		"toon": "toon",
+	}
+
+	for name, format := range formats {
+		t.Run(name, func(t *testing.T) {
+			var buf bytes.Buffer
+			printer := NewPrinterWithWriter(format, &buf)
+			if err := printer.Print(&p); err != nil {
+				t.Fatalf("Print failed: %v", err)
+			}
+			assertGolden(t, "describe/fm-project-"+name, buf.String())
 		})
 	}
 }

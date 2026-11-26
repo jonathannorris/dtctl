@@ -349,8 +349,15 @@ func TestGetScopesForSafetyLevelBaseline(t *testing.T) {
 // request.
 func TestRequiredScopesMatchSafetyLevels(t *testing.T) {
 	union := asSet(GetScopesForSafetyLevel(config.SafetyLevelDangerouslyUnrestricted))
+	// A development-tier resource is granted only once its feature is opted
+	// into, so it is held to the login set with every feature enabled.
+	devUnion := asSet(LoginScopes(config.SafetyLevelDangerouslyUnrestricted, map[string]bool{config.DevelopmentAll: true}))
 
 	for resource, as := range ResourceScopes {
+		union := union
+		if _, dev := developmentResources[resource]; dev {
+			union = devUnion
+		}
 		for _, access := range []Access{AccessRead, AccessWrite, AccessDelete, AccessRun, AccessClaim} {
 			for _, scope := range as.For(access) {
 				if !union[scope] {
