@@ -3676,11 +3676,22 @@ func TestGolden_DescribeFMProject(t *testing.T) {
 	}
 }
 
+// fmGetFormats are the get formats a flat Feature Management resource prints
+// its own fields in.
+var fmGetFormats = []string{"table", "wide", "json", "yaml", "csv", "toon"}
+
 // assertFMGoldens snapshots a Feature Management list in every get format
 // and its first item in every structured describe format.
 func assertFMGoldens[T any](t *testing.T, name string, items []T) {
 	t.Helper()
-	for _, format := range []string{"table", "wide", "json", "yaml", "csv", "toon"} {
+	assertFMGoldensIn(t, name, items, fmGetFormats)
+}
+
+// assertFMGoldensIn is assertFMGoldens for a resource whose tabular formats
+// print something else (rule rows, say), so only getFormats are its own.
+func assertFMGoldensIn[T any](t *testing.T, name string, items []T, getFormats []string) {
+	t.Helper()
+	for _, format := range getFormats {
 		t.Run("get/"+format, func(t *testing.T) {
 			var buf bytes.Buffer
 			if err := NewPrinterWithWriter(format, &buf).PrintList(items); err != nil {
@@ -3756,4 +3767,37 @@ func TestGolden_FMFeatures(t *testing.T) {
 			Status: "ARCHIVED", Type: "OPS", Version: 1,
 		},
 	})
+}
+
+// The structured formats of get and describe fm feature-targeting print the
+// API's targeting unchanged; the table view is a cmd golden.
+func TestGolden_FMFeatureTargeting(t *testing.T) {
+	mi := featuremanagement.ModificationInfo{
+		CreatedBy: "00000000-0000-4000-8000-0000000000a1", CreatedTime: time.Date(2026, 10, 1, 8, 0, 0, 0, time.UTC),
+		LastModifiedBy: "00000000-0000-4000-8000-0000000000a2", LastModifiedTime: time.Date(2026, 11, 3, 14, 30, 0, 0, time.UTC),
+	}
+	assertFMGoldensIn(t, "feature-targeting", []featuremanagement.FeatureTargeting{
+		{
+			ProjectKey: "checkout", FeatureKey: "new-checkout", ReleaseStageKey: "production", Enabled: true, Version: 6,
+			Targeting: featuremanagement.Targeting{Rules: []featuremanagement.TargetingRule{
+				{ID: "6f1c2b9e-0000-4000-8000-000000000001",
+					Serve: []featuremanagement.VariantDistribution{{VariantKey: "variation-a", Percentage: 100}},
+					Conditions: []featuremanagement.TargetingCondition{
+						{ValueType: "STRING", ContextKey: "targetingKey", Operator: "IS", Values: []any{"user-1", "user-2"}},
+						{ValueType: "DATE_TIME", ContextKey: "signup.date", Operator: "AFTER", Values: []any{"1767225600"}},
+					}},
+				{ID: "a93d07e1-0000-4000-8000-000000000002", Name: "Everyone else", BucketingKey: "account.id",
+					Serve: []featuremanagement.VariantDistribution{{VariantKey: "baseline", Percentage: 50}, {VariantKey: "variation-a", Percentage: 50}},
+					Rollout: &featuremanagement.Rollout{Steps: []featuremanagement.RolloutStep{
+						{EffectiveTime: time.Date(2026, 11, 24, 21, 0, 0, 0, time.UTC), Percentage: 10},
+						{EffectiveTime: time.Date(2026, 11, 25, 21, 0, 0, 0, time.UTC), Percentage: 100, Transition: "LINEAR"},
+					}}},
+			}},
+			ModificationInfo: mi,
+		},
+		{
+			ProjectKey: "checkout", FeatureKey: "new-checkout", ReleaseStageKey: "development", Version: 1,
+			Targeting: featuremanagement.Targeting{Rules: []featuremanagement.TargetingRule{}}, ModificationInfo: mi,
+		},
+	}, []string{"json", "yaml", "toon"})
 }

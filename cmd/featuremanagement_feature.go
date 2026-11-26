@@ -76,7 +76,9 @@ func newDescribeFMFeatureCmd() *cobra.Command {
 		Aliases: []string{"features"},
 		Short:   "Show details of a Feature Management feature",
 		Long: `Show detailed information about a feature of a Feature Management project:
-its variants, and each flag's value per variant.
+its variants, each flag's value per variant, and whether targeting is on in
+each release stage. For a stage's rules, use
+'dtctl describe fm feature-targeting <feature> --stage <stage>'.
 
 The argument is the feature's key; a name is accepted too when no feature has
 it as a key. The project comes from --project, or from the context's default
@@ -101,13 +103,23 @@ Examples:
 				return err
 			}
 
-			f, err := featuremanagement.NewHandler(c).GetFeature(project, args[0])
+			h := featuremanagement.NewHandler(c)
+			f, err := h.GetFeature(project, args[0])
 			if err != nil {
 				return err
 			}
 
-			if useActionDescribeTextView(cmdContext(cmd)) {
-				printFMFeatureDescribe(currentStdout(cmdContext(cmd)), f)
+			if ctx := cmdContext(cmd); useActionDescribeTextView(ctx) {
+				out := currentStdout(ctx)
+				printFMFeatureDescribe(out, f)
+				// The per-stage summary needs the targeting read scope, which
+				// the feature itself does not; without it the feature still
+				// describes, and stderr says what is missing.
+				if stages, err := h.ListFeatureTargeting(project, f.Key); err != nil {
+					output.FprintWarning(currentStderr(ctx), "release stage targeting not shown: %v", err)
+				} else {
+					printFMFeatureStages(out, stages)
+				}
 				return nil
 			}
 

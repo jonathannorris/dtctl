@@ -44,6 +44,7 @@ func newGetFMCmd() *cobra.Command {
 	c.AddCommand(newGetFMProjectsCmd())
 	c.AddCommand(newGetFMReleaseStagesCmd())
 	c.AddCommand(newGetFMFeaturesCmd())
+	c.AddCommand(newGetFMFeatureTargetingCmd())
 	return c
 }
 
@@ -54,6 +55,7 @@ func newDescribeFMCmd() *cobra.Command {
 	c.AddCommand(newDescribeFMProjectCmd())
 	c.AddCommand(newDescribeFMReleaseStageCmd())
 	c.AddCommand(newDescribeFMFeatureCmd())
+	c.AddCommand(newDescribeFMFeatureTargetingCmd())
 	return c
 }
 

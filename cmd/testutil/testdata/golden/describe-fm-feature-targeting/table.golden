@@ -1,0 +1,25 @@
+Feature:       new-checkout
+Stage:         production
+Targeting:     on
+Version:       6
+Created:       2026-10-01 08:00:00 by 00000000-0000-4000-8000-0000000000a1
+Last Modified: 2026-11-03 14:30:00 by 00000000-0000-4000-8000-0000000000a2
+
+0  6f1c2b9e
+   Conditions:  targetingKey = user-1,user-2
+                and app.version >= 2.3.0
+   Variant:     variation-a
+
+1  a93d07e1  Everyone else
+   Conditions:  all requests
+   Variant:     variation-a
+   Rollout:     10% at 2026-11-24 21:00Z
+                50% at 2026-11-25 21:00Z (linear)
+                100% at 2026-11-27 21:00Z
+   Bucketing:   account.id
+
+2  0c4e8a72
+   Conditions:  all requests
+   Variant:     baseline=50,variation-a=50
+
+Default: requests that match no rule get the default defined in code.

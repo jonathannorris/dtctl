@@ -11,6 +11,7 @@ import (
 	"github.com/Dynatrace/dtctl/pkg/auth"
 	"github.com/Dynatrace/dtctl/pkg/commands"
 	"github.com/Dynatrace/dtctl/pkg/config"
+	"github.com/Dynatrace/dtctl/pkg/output"
 	"github.com/Dynatrace/dtctl/pkg/resources/featuremanagement"
 	"github.com/Dynatrace/dtctl/pkg/stability"
 )
@@ -57,12 +58,13 @@ func TestDevelopmentResourceFeaturesAreRegistered(t *testing.T) {
 // fmLeafScopes is the read scope each fm leaf requires, keyed by the leaf's
 // command name on both verbs.
 var fmLeafScopes = map[string]string{
-	"projects":       "feature-management:projects:read",
-	"project":        "feature-management:projects:read",
-	"release-stages": "feature-management:release-stages:read",
-	"release-stage":  "feature-management:release-stages:read",
-	"features":       "feature-management:features:read",
-	"feature":        "feature-management:features:read",
+	"projects":          "feature-management:projects:read",
+	"project":           "feature-management:projects:read",
+	"release-stages":    "feature-management:release-stages:read",
+	"release-stage":     "feature-management:release-stages:read",
+	"features":          "feature-management:features:read",
+	"feature":           "feature-management:features:read",
+	"feature-targeting": "feature-management:release-stage-targetings:read",
 }
 
 // With the opt-in, the catalog lists the group-qualified scope on each leaf
@@ -218,4 +220,78 @@ func TestDescribeFMFeatureTableGolden_Empty(t *testing.T) {
 		ProjectKey: "checkout", Key: "bare", Name: "Bare", Status: "ARCHIVED", Type: "OPS", Version: 1,
 	})
 	cmdtestutil.AssertGoldenStripped(t, "describe-fm-feature/table-empty", buf.String())
+}
+
+func fmTargetingForDescribe() *featuremanagement.FeatureTargeting {
+	at := func(d int) time.Time { return time.Date(2026, 11, 24+d, 21, 0, 0, 0, time.UTC) }
+	on := []featuremanagement.VariantDistribution{{VariantKey: "variation-a", Percentage: 100}}
+	return &featuremanagement.FeatureTargeting{
+		ProjectKey: "checkout", FeatureKey: "new-checkout", ReleaseStageKey: "production", Enabled: true, Version: 6,
+		Targeting: featuremanagement.Targeting{Rules: []featuremanagement.TargetingRule{
+			{ID: "6f1c2b9e-0000-4000-8000-000000000001", Serve: on, Conditions: []featuremanagement.TargetingCondition{
+				{ValueType: "STRING", ContextKey: "targetingKey", Operator: "IS", Values: []any{"user-1", "user-2"}},
+				{ValueType: "SEM_VER", ContextKey: "app.version", Operator: "GREATER_THAN_OR_EQUAL", Values: []any{"2.3.0"}},
+			}},
+			{ID: "a93d07e1-0000-4000-8000-000000000002", Name: "Everyone else", Serve: on, BucketingKey: "account.id",
+				Rollout: &featuremanagement.Rollout{Steps: []featuremanagement.RolloutStep{
+					{EffectiveTime: at(0), Percentage: 10},
+					{EffectiveTime: at(1), Percentage: 50, Transition: "LINEAR"},
+					{EffectiveTime: at(3), Percentage: 100},
+				}}},
+			{ID: "0c4e8a72-0000-4000-8000-000000000003", Serve: []featuremanagement.VariantDistribution{
+				{VariantKey: "baseline", Percentage: 50}, {VariantKey: "variation-a", Percentage: 50}}},
+		}},
+		ModificationInfo: featuremanagement.ModificationInfo{
+			CreatedBy: "00000000-0000-4000-8000-0000000000a1", CreatedTime: time.Date(2026, 10, 1, 8, 0, 0, 0, time.UTC),
+			LastModifiedBy: "00000000-0000-4000-8000-0000000000a2", LastModifiedTime: time.Date(2026, 11, 3, 14, 30, 0, 0, time.UTC),
+		},
+	}
+}
+
+func TestDescribeFMFeatureTargetingTableGolden(t *testing.T) {
+	var buf bytes.Buffer
+	printFMTargetingDescribe(&buf, fmTargetingForDescribe())
+	cmdtestutil.AssertGoldenStripped(t, "describe-fm-feature-targeting/table", buf.String())
+}
+
+func TestDescribeFMFeatureTargetingTableGolden_NoRules(t *testing.T) {
+	var buf bytes.Buffer
+	printFMTargetingDescribe(&buf, &featuremanagement.FeatureTargeting{
+		FeatureKey: "new-checkout", ReleaseStageKey: "staging", Version: 1,
+	})
+	cmdtestutil.AssertGoldenStripped(t, "describe-fm-feature-targeting/table-no-rules", buf.String())
+}
+
+func TestDescribeFMFeatureStagesGolden(t *testing.T) {
+	var buf bytes.Buffer
+	printFMFeatureStages(&buf, []featuremanagement.FeatureTargeting{
+		{ReleaseStageKey: "development"},
+		{ReleaseStageKey: "staging", Targeting: featuremanagement.Targeting{Rules: make([]featuremanagement.TargetingRule, 1)}},
+		*fmTargetingForDescribe(),
+	})
+	cmdtestutil.AssertGoldenStripped(t, "describe-fm-feature/stages", buf.String())
+}
+
+// get fm feature-targeting prints rule rows in its tabular formats and the
+// API's targeting otherwise.
+func TestGetFMFeatureTargetingTableGolden(t *testing.T) {
+	items := []featuremanagement.FeatureTargeting{
+		{FeatureKey: "new-checkout", ReleaseStageKey: "development", Version: 1},
+		*fmTargetingForDescribe(),
+	}
+	for _, format := range []string{"table", "wide", "csv"} {
+		var buf bytes.Buffer
+		if err := printFMTargetingTable(&buf, format, output.NewPrinterWithWriter(format, &buf), items, false); err != nil {
+			t.Fatal(err)
+		}
+		cmdtestutil.AssertGoldenStripped(t, "get-fm-feature-targeting/"+format, buf.String())
+	}
+	// One stage (--stage): the rules follow the summary without a heading.
+	for _, format := range []string{"table", "csv"} {
+		var buf bytes.Buffer
+		if err := printFMTargetingTable(&buf, format, output.NewPrinterWithWriter(format, &buf), items[1:], true); err != nil {
+			t.Fatal(err)
+		}
+		cmdtestutil.AssertGoldenStripped(t, "get-fm-feature-targeting/"+format+"-one-stage", buf.String())
+	}
 }

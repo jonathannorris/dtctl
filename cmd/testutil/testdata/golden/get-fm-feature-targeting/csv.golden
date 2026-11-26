@@ -1,0 +1,5 @@
+STAGE,TARGETING,#,ID,NAME,CONDITIONS,VARIANT,ROLLOUT,BUCKETING,VERSION
+development,off,-,-,,(no rules),-,-,,1
+production,on,0,6f1c2b9e,,"targetingKey = user-1,user-2 and app.version >= 2.3.0",variation-a,-,,6
+production,on,1,a93d07e1,Everyone else,all requests,variation-a,10% -> 50% (linear) -> 100%,account.id,6
+production,on,2,0c4e8a72,,all requests,"baseline=50,variation-a=50",-,,6
