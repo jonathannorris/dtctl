@@ -330,6 +330,16 @@ Without the extra scope the flag fails with `403 Insufficient permissions`, whil
 
 `dtctl auth login` requests `document:documents:admin` at the `readwrite-all` and `dangerously-unrestricted` safety levels (not at `readonly` or `readwrite-mine`, which exist to keep other users' documents out of reach). The scope alone is not enough: the tenant's IAM policy must also grant the `document:documents:admin` permission — a user without it can still log in, the API just keeps refusing `--admin-access`. OAuth sessions created before dtctl requested the scope do not carry it; run `dtctl auth login` again to pick it up.
 
+### Scopes of development-tier commands
+
+A development-tier command is not registered until you opt in to its feature (see [Stability](STABILITY.md)), and neither are its scopes: `dtctl auth login` requests them only while the feature is enabled, so a login without the opt-in asks for exactly the scopes it did before the command existed. They are also left out of the generated tables below.
+
+| Feature | Commands | Scopes requested at login when enabled |
+| --- | --- | --- |
+| `feature-management` | `dtctl get fm ...`, `dtctl describe fm ...` | `feature-management:projects:read`, `feature-management:release-stages:read`, `feature-management:features:read`, `feature-management:release-stage-targetings:read`, `feature-management:context-attributes:read`, `feature-management:sdk-keys:read` |
+
+Enable the feature first, then log in again to pick the scopes up: `DTCTL_DEVELOPMENT=feature-management dtctl auth login`. With the feature enabled, `dtctl --check-scopes` reports each `fm` command's requirement; `get fm overrides` and `describe fm overrides` need the projects, features and release-stages read scopes together.
+
 ### Endpoints that accept one of several scopes
 
 Some endpoints accept any one of several scopes. The Platform Management API behind `dtctl get environment`, `get license` and `get license-settings` (and their `describe` forms) accepts `app-engine:apps:run`, `app-engine:functions:run` or `platform-management:environments:read`. dtctl lists and requests `app-engine:apps:run`, and the table below shows the others as "or instead any one of". `dtctl --check-scopes` reports `ok` for a token that holds any one of them, and names the one it relied on in `satisfied_by`.
