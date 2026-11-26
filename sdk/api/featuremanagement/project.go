@@ -2,11 +2,7 @@ package featuremanagement
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
-	"strconv"
-
-	"github.com/Dynatrace/dtctl/sdk/httpclient"
 )
 
 // ChangeRequestSettings controls whether a project's guarded release stages
@@ -46,89 +42,14 @@ type ProjectList struct {
 // ListProjects returns every project in the environment (listProjects),
 // following the API's page-number pagination to the last page.
 func (h *Handler) ListProjects(ctx context.Context, opts ListOptions) (*ProjectList, error) {
-	pageSize := opts.PageSize
-	if pageSize <= 0 {
-		pageSize = DefaultPageSize
+	items, collection, err := listAll[ProjectDetails](ctx, h.client, "list projects", BasePath+"/projects", opts)
+	if err != nil {
+		return nil, err
 	}
-
-	var result ProjectList
-	fetched := 0
-	for page := 1; ; page++ {
-		if page > maxPages {
-			return nil, fmt.Errorf("list projects: stopped after %d pages", maxPages)
-		}
-		req := h.client.HTTP().R().SetContext(ctx).
-			SetQueryParam("page", strconv.Itoa(page)).
-			SetQueryParam("page-size", strconv.Itoa(pageSize))
-		if opts.Sort != "" {
-			req.SetQueryParam("sort", opts.Sort)
-		}
-		for _, f := range opts.AddFields {
-			req.QueryParam.Add("add-fields", f)
-		}
-
-		resp, err := req.Get(BasePath + "/projects")
-		if err != nil {
-			return nil, fmt.Errorf("list projects: %w", err)
-		}
-		if err := httpclient.CheckResponse(resp); err != nil {
-			return nil, fmt.Errorf("list projects: %w", err)
-		}
-		var pageResult ProjectList
-		if err := json.Unmarshal(resp.Body(), &pageResult); err != nil {
-			return nil, fmt.Errorf("list projects: parse response: %w", err)
-		}
-
-		if page == 1 {
-			result.ResourceContext = pageResult.ResourceContext
-		}
-		result.Items = append(result.Items, pageResult.Items...)
-		fetched += len(pageResult.Items)
-
-		if lastPage(pageResult.Pagination, len(pageResult.Items), fetched, pageSize) {
-			break
-		}
-	}
-	if result.Items == nil {
-		result.Items = []ProjectDetails{}
-	}
-	return &result, nil
-}
-
-// lastPage reports whether a page of n items ends a listing that has fetched
-// items in total. The total count decides when the server sends one; a short
-// or empty page decides otherwise. The page size the server reports wins over
-// the requested one, since a server may cap it.
-func lastPage(p *Pagination, n, fetched, requested int) bool {
-	if n == 0 {
-		return true
-	}
-	if p != nil && p.TotalCount != nil {
-		return int64(fetched) >= *p.TotalCount
-	}
-	size := requested
-	if p != nil && p.PageSize != nil && *p.PageSize > 0 {
-		size = *p.PageSize
-	}
-	return n < size
+	return &ProjectList{Items: items, ResourceContext: collection}, nil
 }
 
 // GetProject returns one project by key (getProject).
 func (h *Handler) GetProject(ctx context.Context, projectKey string, addFields ...string) (*ProjectDetails, error) {
-	req := h.client.HTTP().R().SetContext(ctx)
-	for _, f := range addFields {
-		req.QueryParam.Add("add-fields", f)
-	}
-	resp, err := req.Get(fmt.Sprintf("%s/projects/%s", BasePath, httpclient.PathSegment(projectKey)))
-	if err != nil {
-		return nil, fmt.Errorf("get project %q: %w", projectKey, err)
-	}
-	if err := httpclient.CheckResponse(resp); err != nil {
-		return nil, fmt.Errorf("get project %q: %w", projectKey, err)
-	}
-	var result ProjectDetails
-	if err := json.Unmarshal(resp.Body(), &result); err != nil {
-		return nil, fmt.Errorf("get project %q: parse response: %w", projectKey, err)
-	}
-	return &result, nil
+	return getOne[ProjectDetails](ctx, h.client, fmt.Sprintf("get project %q", projectKey), projectPath(projectKey), addFields)
 }

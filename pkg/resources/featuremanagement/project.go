@@ -5,11 +5,7 @@ package featuremanagement
 
 import (
 	"context"
-	"errors"
-	"fmt"
-	"net/http"
 	"sort"
-	"strings"
 
 	"github.com/Dynatrace/dtctl/pkg/client"
 	sdkfm "github.com/Dynatrace/dtctl/sdk/api/featuremanagement"
@@ -65,17 +61,8 @@ func fromSDKProject(s *sdkfm.ProjectDetails) Project {
 		p.Maintainers = []string{}
 	}
 	p.ChangeRequestsDisplay = onOff(p.ChangeRequestsEnabled())
-	if t := s.ModificationInfo.LastModifiedTime; !t.IsZero() {
-		p.LastModifiedDisplay = t.UTC().Format("2006-01-02 15:04:05")
-	}
+	p.LastModifiedDisplay = displayTime(s.ModificationInfo.LastModifiedTime)
 	return p
-}
-
-func onOff(b bool) string {
-	if b {
-		return "on"
-	}
-	return "off"
 }
 
 // Handler is the CLI handler for Feature Management resources.
@@ -105,57 +92,32 @@ func (h *Handler) ListProjects() ([]Project, error) {
 }
 
 // GetProject returns one project by key or, when no project has that key,
-// by name. The key is tried first and costs one request; a name costs a
-// listing, and only when the key misses. Resolution never dispatches on the
-// argument's shape, since the key pattern also matches names and UUIDs: the
-// server decides. It answers 404 for a well-formed key nobody has, and 400 for
-// an argument that cannot be a key at all ("Checkout flows"), which can then
-// only be a name.
+// by name (see resolveKeyOrName).
 func (h *Handler) GetProject(keyOrName string) (*Project, error) {
-	s, err := h.sdk.GetProject(context.Background(), keyOrName)
-	if err == nil {
-		p := fromSDKProject(s)
-		return &p, nil
-	}
-	if !isKeyMiss(err) {
+	p, err := resolveKeyOrName("project", keyOrName,
+		func(key string) (Project, error) {
+			s, err := h.sdk.GetProject(context.Background(), key)
+			if err != nil {
+				return Project{}, err
+			}
+			return fromSDKProject(s), nil
+		},
+		func() ([]Project, error) {
+			list, err := h.sdk.ListProjects(context.Background(), sdkfm.ListOptions{})
+			if err != nil {
+				return nil, err
+			}
+			out := make([]Project, len(list.Items))
+			for i := range list.Items {
+				out[i] = fromSDKProject(&list.Items[i])
+			}
+			return out, nil
+		},
+		func(p Project) string { return p.Key },
+		func(p Project) string { return p.Name },
+	)
+	if err != nil {
 		return nil, err
 	}
-
-	list, listErr := h.sdk.ListProjects(context.Background(), sdkfm.ListOptions{})
-	if listErr != nil {
-		// The name lookup is a fallback; the key's 404 is the error that
-		// answers what the caller asked.
-		return nil, err
-	}
-	var matches []sdkfm.ProjectDetails
-	for _, item := range list.Items {
-		if item.Name == keyOrName {
-			matches = append(matches, item)
-		}
-	}
-	switch len(matches) {
-	case 0:
-		return nil, fmt.Errorf("project %q not found (no project has that key or name)", keyOrName)
-	case 1:
-		p := fromSDKProject(&matches[0])
-		return &p, nil
-	default:
-		keys := make([]string, len(matches))
-		for i, m := range matches {
-			keys[i] = m.Key
-		}
-		sort.Strings(keys)
-		return nil, fmt.Errorf("%d projects are named %q; pass a key instead: %s", len(matches), keyOrName, strings.Join(keys, ", "))
-	}
-}
-
-// isKeyMiss reports whether a lookup by key failed because the argument is
-// not an existing key: a 404, or the 400 the API returns when the argument
-// does not match the key pattern.
-func isKeyMiss(err error) bool {
-	var apiErr *httpclient.APIError
-	if !errors.As(err, &apiErr) {
-		return false
-	}
-	return apiErr.StatusCode == http.StatusNotFound || apiErr.StatusCode == http.StatusBadRequest
+	return &p, nil
 }
