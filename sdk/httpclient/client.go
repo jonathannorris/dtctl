@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"regexp"
 	"strings"
 	"time"
 
@@ -202,8 +203,23 @@ var sensitiveHeaders = map[string]bool{
 	"set-cookie":    true,
 }
 
+// sdkKeySecret matches a Feature Management SDK key,
+// {token}.{platform}_{geo}_{publicRandom}.{secret}_{sha1}. The first two
+// dot-separated parts are the key's public, log-safe identifier; the rest is
+// the credential.
+var sdkKeySecret = regexp.MustCompile(`(dt[0-9]{2}\.(?:web|mobile|server)_[a-z]{2}_[a-zA-Z0-9]{10,})\.[a-f0-9]{32,}_[a-f0-9]{10,}`)
+
+// RedactSecrets removes credentials that travel in URLs and bodies rather
+// than headers from debug output. A Feature Management SDK key keeps its
+// public identifier, so a log still says which key was involved. Every
+// verbose logger applies it to the URL and both bodies.
+func RedactSecrets(s string) string {
+	return sdkKeySecret.ReplaceAllString(s, "$1.[REDACTED]")
+}
+
 // EnableVerboseLogging enables request/response debug logging.
-// Level 1: summary. Level 2+: full headers and body (sensitive headers redacted).
+// Level 1: summary. Level 2+: full headers and body (sensitive headers
+// redacted, and SDK key secrets in URLs and bodies; see RedactSecrets).
 func (c *Client) EnableVerboseLogging(level int, w io.Writer) {
 	if level <= 0 || w == nil {
 		return
@@ -212,7 +228,7 @@ func (c *Client) EnableVerboseLogging(level int, w io.Writer) {
 	c.http.SetPreRequestHook(func(_ *resty.Client, req *http.Request) error {
 		var sb strings.Builder
 		sb.WriteString("===> REQUEST <===\n")
-		sb.WriteString(fmt.Sprintf("%s %s\n", req.Method, req.URL))
+		sb.WriteString(fmt.Sprintf("%s %s\n", req.Method, RedactSecrets(req.URL.String())))
 		if level >= 2 {
 			sb.WriteString("HEADERS:\n")
 			for k, v := range req.Header {
@@ -223,7 +239,7 @@ func (c *Client) EnableVerboseLogging(level int, w io.Writer) {
 				}
 			}
 			if bodyText := readRequestBodyForDebug(req); bodyText != "" {
-				sb.WriteString(fmt.Sprintf("BODY:\n%s\n", bodyText))
+				sb.WriteString(fmt.Sprintf("BODY:\n%s\n", RedactSecrets(bodyText)))
 			}
 		}
 		fmt.Fprint(w, sb.String())
@@ -244,7 +260,7 @@ func (c *Client) EnableVerboseLogging(level int, w io.Writer) {
 					sb.WriteString(fmt.Sprintf("    %s: %s\n", k, strings.Join(v, ", ")))
 				}
 			}
-			sb.WriteString(fmt.Sprintf("BODY:\n%s\n", resp.String()))
+			sb.WriteString(fmt.Sprintf("BODY:\n%s\n", RedactSecrets(resp.String())))
 		}
 		fmt.Fprint(w, sb.String())
 		return nil
