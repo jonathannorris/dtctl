@@ -16,6 +16,7 @@ import (
 var developmentResources = map[string]string{
 	"fm/project":       "feature-management",
 	"fm/release-stage": "feature-management",
+	"fm/feature":       "feature-management",
 }
 
 // DevelopmentResourceFeatures returns a copy of the resource-to-feature map,

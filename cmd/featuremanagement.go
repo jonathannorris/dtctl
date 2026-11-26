@@ -43,6 +43,7 @@ func newGetFMCmd() *cobra.Command {
 	c := newFMGroupCmd("Get Feature Management resources")
 	c.AddCommand(newGetFMProjectsCmd())
 	c.AddCommand(newGetFMReleaseStagesCmd())
+	c.AddCommand(newGetFMFeaturesCmd())
 	return c
 }
 
@@ -52,6 +53,7 @@ func newDescribeFMCmd() *cobra.Command {
 	c := newFMGroupCmd("Show details of Feature Management resources")
 	c.AddCommand(newDescribeFMProjectCmd())
 	c.AddCommand(newDescribeFMReleaseStageCmd())
+	c.AddCommand(newDescribeFMFeatureCmd())
 	return c
 }
 

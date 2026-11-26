@@ -3722,3 +3722,38 @@ func TestGolden_FMReleaseStages(t *testing.T) {
 		},
 	})
 }
+
+func TestGolden_FMFeatures(t *testing.T) {
+	zero, one := 0, 1
+	mi := featuremanagement.ModificationInfo{
+		CreatedBy: "00000000-0000-4000-8000-0000000000a1", CreatedTime: time.Date(2026, 10, 1, 8, 0, 0, 0, time.UTC),
+		LastModifiedBy: "00000000-0000-4000-8000-0000000000a2", LastModifiedTime: time.Date(2026, 11, 3, 14, 30, 0, 0, time.UTC),
+	}
+	assertFMGoldens(t, "feature", []featuremanagement.Feature{
+		{
+			ProjectKey: "checkout", Key: "new-checkout", Name: "New checkout", Description: "One-page checkout",
+			Variants: []featuremanagement.Variant{
+				{Key: "baseline", Name: "Baseline", DisplayOrder: &zero},
+				{Key: "variation-a", Name: "Variation A", DisplayOrder: &one},
+			},
+			VariantsDisplay: "baseline,variation-a",
+			Flags: []featuremanagement.FeatureFlag{
+				{Key: "enabled", Name: "enabled", Type: "BOOLEAN", Variants: map[string]any{"baseline": false, "variation-a": true}},
+				{Key: "button-color", Name: "Button color", Type: "STRING",
+					Variants: map[string]any{"baseline": "blue", "variation-a": "green"},
+					Schema:   map[string]any{"type": "ENUM", "values": []any{"blue", "green"}}},
+			},
+			FlagsDisplay: "2",
+			Owner:        "00000000-0000-4000-8000-0000000000a1", Maintainers: []string{},
+			ModificationInfo: mi, LastModifiedDisplay: "2026-11-03 14:30:00",
+			Status: "ACTIVE", Type: "RELEASE", Version: 5,
+		},
+		{
+			ProjectKey: "checkout", Key: "kill-switch", Name: "Kill switch",
+			Variants: []featuremanagement.Variant{}, Flags: []featuremanagement.FeatureFlag{}, FlagsDisplay: "0",
+			Owner: "00000000-0000-4000-8000-0000000000b1", Maintainers: []string{},
+			ModificationInfo: mi, LastModifiedDisplay: "2026-11-03 14:30:00",
+			Status: "ARCHIVED", Type: "OPS", Version: 1,
+		},
+	})
+}

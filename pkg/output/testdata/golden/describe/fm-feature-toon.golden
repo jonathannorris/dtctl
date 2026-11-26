@@ -1,0 +1,35 @@
+description: One-page checkout
+flags[2]:
+  - description: ""
+    key: enabled
+    name: enabled
+    type: BOOLEAN
+    variants:
+      baseline: false
+      "variation-a": true
+  - description: ""
+    key: button-color
+    name: Button color
+    schema:
+      type: ENUM
+      values[2]: blue,green
+    type: STRING
+    variants:
+      baseline: blue
+      "variation-a": green
+key: new-checkout
+maintainers: []
+modificationInfo:
+  createdBy: 00000000-0000-4000-8000-0000000000a1
+  createdTime: "2026-10-01T08:00:00Z"
+  lastModifiedBy: 00000000-0000-4000-8000-0000000000a2
+  lastModifiedTime: "2026-11-03T14:30:00Z"
+name: New checkout
+owner: 00000000-0000-4000-8000-0000000000a1
+projectKey: checkout
+status: ACTIVE
+type: RELEASE
+variants[2]{displayOrder,key,name}:
+  0,baseline,Baseline
+  1,variation-a,Variation A
+version: 5

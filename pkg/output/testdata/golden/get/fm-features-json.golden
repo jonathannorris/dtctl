@@ -1,0 +1,79 @@
+[
+  {
+    "projectKey": "checkout",
+    "key": "new-checkout",
+    "name": "New checkout",
+    "description": "One-page checkout",
+    "variants": [
+      {
+        "key": "baseline",
+        "name": "Baseline",
+        "displayOrder": 0
+      },
+      {
+        "key": "variation-a",
+        "name": "Variation A",
+        "displayOrder": 1
+      }
+    ],
+    "flags": [
+      {
+        "key": "enabled",
+        "name": "enabled",
+        "description": "",
+        "type": "BOOLEAN",
+        "variants": {
+          "baseline": false,
+          "variation-a": true
+        }
+      },
+      {
+        "key": "button-color",
+        "name": "Button color",
+        "description": "",
+        "type": "STRING",
+        "variants": {
+          "baseline": "blue",
+          "variation-a": "green"
+        },
+        "schema": {
+          "type": "ENUM",
+          "values": [
+            "blue",
+            "green"
+          ]
+        }
+      }
+    ],
+    "owner": "00000000-0000-4000-8000-0000000000a1",
+    "maintainers": [],
+    "modificationInfo": {
+      "createdBy": "00000000-0000-4000-8000-0000000000a1",
+      "createdTime": "2026-10-01T08:00:00Z",
+      "lastModifiedBy": "00000000-0000-4000-8000-0000000000a2",
+      "lastModifiedTime": "2026-11-03T14:30:00Z"
+    },
+    "status": "ACTIVE",
+    "type": "RELEASE",
+    "version": 5
+  },
+  {
+    "projectKey": "checkout",
+    "key": "kill-switch",
+    "name": "Kill switch",
+    "description": "",
+    "variants": [],
+    "flags": [],
+    "owner": "00000000-0000-4000-8000-0000000000b1",
+    "maintainers": [],
+    "modificationInfo": {
+      "createdBy": "00000000-0000-4000-8000-0000000000a1",
+      "createdTime": "2026-10-01T08:00:00Z",
+      "lastModifiedBy": "00000000-0000-4000-8000-0000000000a2",
+      "lastModifiedTime": "2026-11-03T14:30:00Z"
+    },
+    "status": "ARCHIVED",
+    "type": "OPS",
+    "version": 1
+  }
+]

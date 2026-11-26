@@ -61,6 +61,8 @@ var fmLeafScopes = map[string]string{
 	"project":        "feature-management:projects:read",
 	"release-stages": "feature-management:release-stages:read",
 	"release-stage":  "feature-management:release-stages:read",
+	"features":       "feature-management:features:read",
+	"feature":        "feature-management:features:read",
 }
 
 // With the opt-in, the catalog lists the group-qualified scope on each leaf
@@ -177,4 +179,43 @@ func TestDescribeFMReleaseStageTableGolden(t *testing.T) {
 		},
 	})
 	cmdtestutil.AssertGoldenStripped(t, "describe-fm-release-stage/table", buf.String())
+}
+
+func fmFeatureForDescribe() *featuremanagement.Feature {
+	zero, one := 0, 1
+	return &featuremanagement.Feature{
+		ProjectKey: "checkout", Key: "new-checkout", Name: "New checkout",
+		Description: "One-page checkout",
+		Variants: []featuremanagement.Variant{
+			{Key: "baseline", Name: "Baseline", DisplayOrder: &zero},
+			{Key: "variation-a", Name: "Variation A", DisplayOrder: &one},
+		},
+		Flags: []featuremanagement.FeatureFlag{
+			{Key: "enabled", Name: "enabled", Type: "BOOLEAN", Variants: map[string]any{"baseline": false, "variation-a": true}},
+			{Key: "button-color", Name: "Button color", Description: "Color of the pay button", Type: "STRING",
+				Variants: map[string]any{"baseline": "blue", "variation-a": "green"},
+				Schema:   map[string]any{"type": "ENUM", "values": []any{"blue", "green"}}},
+		},
+		Owner:       "00000000-0000-4000-8000-0000000000a1",
+		Maintainers: []string{"00000000-0000-4000-8000-0000000000a2"},
+		Status:      "ACTIVE", Type: "RELEASE", Version: 5,
+		ModificationInfo: featuremanagement.ModificationInfo{
+			CreatedBy: "00000000-0000-4000-8000-0000000000a1", CreatedTime: time.Date(2026, 10, 1, 8, 0, 0, 0, time.UTC),
+			LastModifiedBy: "00000000-0000-4000-8000-0000000000a2", LastModifiedTime: time.Date(2026, 11, 3, 14, 30, 0, 0, time.UTC),
+		},
+	}
+}
+
+func TestDescribeFMFeatureTableGolden(t *testing.T) {
+	var buf bytes.Buffer
+	printFMFeatureDescribe(&buf, fmFeatureForDescribe())
+	cmdtestutil.AssertGoldenStripped(t, "describe-fm-feature/table", buf.String())
+}
+
+func TestDescribeFMFeatureTableGolden_Empty(t *testing.T) {
+	var buf bytes.Buffer
+	printFMFeatureDescribe(&buf, &featuremanagement.Feature{
+		ProjectKey: "checkout", Key: "bare", Name: "Bare", Status: "ARCHIVED", Type: "OPS", Version: 1,
+	})
+	cmdtestutil.AssertGoldenStripped(t, "describe-fm-feature/table-empty", buf.String())
 }

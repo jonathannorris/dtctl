@@ -252,6 +252,7 @@ var ResourceScopes = map[string]AccessScopes{
 	// generic enough to collide with other resources.
 	"fm/project":       {Read: []string{"feature-management:projects:read"}},
 	"fm/release-stage": {Read: []string{"feature-management:release-stages:read"}},
+	"fm/feature":       {Read: []string{"feature-management:features:read"}},
 }
 
 // sharing reads the document's metadata for the ownership check, then works
