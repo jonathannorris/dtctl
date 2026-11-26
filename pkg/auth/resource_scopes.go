@@ -250,7 +250,8 @@ var ResourceScopes = map[string]AccessScopes{
 	// for them only when the feature is opted into (developmentResources).
 	// Keys are group-qualified ("fm/project"), since the leaf names are
 	// generic enough to collide with other resources.
-	"fm/project": {Read: []string{"feature-management:projects:read"}},
+	"fm/project":       {Read: []string{"feature-management:projects:read"}},
+	"fm/release-stage": {Read: []string{"feature-management:release-stages:read"}},
 }
 
 // sharing reads the document's metadata for the ownership check, then works

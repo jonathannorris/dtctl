@@ -14,7 +14,8 @@ import (
 // login scope list does not change because an unfinished command exists in
 // the tree. The safety-level composition (safetyLevelScopes) never reads them.
 var developmentResources = map[string]string{
-	"fm/project": "feature-management",
+	"fm/project":       "feature-management",
+	"fm/release-stage": "feature-management",
 }
 
 // DevelopmentResourceFeatures returns a copy of the resource-to-feature map,

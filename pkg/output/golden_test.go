@@ -3675,3 +3675,50 @@ func TestGolden_DescribeFMProject(t *testing.T) {
 		})
 	}
 }
+
+// assertFMGoldens snapshots a Feature Management list in every get format
+// and its first item in every structured describe format.
+func assertFMGoldens[T any](t *testing.T, name string, items []T) {
+	t.Helper()
+	for _, format := range []string{"table", "wide", "json", "yaml", "csv", "toon"} {
+		t.Run("get/"+format, func(t *testing.T) {
+			var buf bytes.Buffer
+			if err := NewPrinterWithWriter(format, &buf).PrintList(items); err != nil {
+				t.Fatalf("PrintList failed: %v", err)
+			}
+			assertGolden(t, "get/fm-"+name+"s-"+format, buf.String())
+		})
+	}
+	for _, format := range []string{"json", "yaml", "toon"} {
+		t.Run("describe/"+format, func(t *testing.T) {
+			var buf bytes.Buffer
+			if err := NewPrinterWithWriter(format, &buf).Print(&items[0]); err != nil {
+				t.Fatalf("Print failed: %v", err)
+			}
+			assertGolden(t, "describe/fm-"+name+"-"+format, buf.String())
+		})
+	}
+}
+
+func TestGolden_FMReleaseStages(t *testing.T) {
+	created := time.Date(2026, 10, 1, 8, 0, 0, 0, time.UTC)
+	modified := time.Date(2026, 11, 3, 14, 30, 0, 0, time.UTC)
+	on := true
+	mi := featuremanagement.ModificationInfo{
+		CreatedBy: "00000000-0000-4000-8000-0000000000a1", CreatedTime: created,
+		LastModifiedBy: "00000000-0000-4000-8000-0000000000a2", LastModifiedTime: modified,
+	}
+	assertFMGoldens(t, "release-stage", []featuremanagement.ReleaseStage{
+		{
+			Key: "production", Name: "Production", Description: "Customer-facing traffic",
+			Type: "PRODUCTION", Guarded: &on, GuardedDisplay: "on", DisplayOrder: 2,
+			ModificationInfo: mi, LastModifiedDisplay: "2026-11-03 14:30:00",
+			ResourceContext: &featuremanagement.ResourceContext{Operations: []string{"write"}},
+			Version:         3,
+		},
+		{
+			Key: "development", Name: "Development", Type: "DEVELOPMENT", GuardedDisplay: "off",
+			ModificationInfo: mi, LastModifiedDisplay: "2026-11-03 14:30:00", Version: 1,
+		},
+	})
+}

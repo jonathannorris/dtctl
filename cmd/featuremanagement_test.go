@@ -54,13 +54,21 @@ func TestDevelopmentResourceFeaturesAreRegistered(t *testing.T) {
 	}
 }
 
-// With the opt-in, the catalog lists the group-qualified scope on the leaf
+// fmLeafScopes is the read scope each fm leaf requires, keyed by the leaf's
+// command name on both verbs.
+var fmLeafScopes = map[string]string{
+	"projects":       "feature-management:projects:read",
+	"project":        "feature-management:projects:read",
+	"release-stages": "feature-management:release-stages:read",
+	"release-stage":  "feature-management:release-stages:read",
+}
+
+// With the opt-in, the catalog lists the group-qualified scope on each leaf
 // and --check-scopes resolves the same requirement.
 func TestFeatureManagementScopesResolve(t *testing.T) {
 	applyDevelopmentRegistration(map[string]bool{config.DevelopmentAll: true})
 	t.Cleanup(func() { applyDevelopmentRegistration(nil) })
 
-	const scope = "feature-management:projects:read"
 	verbs := commands.BuildVerbs(rootCmd)
 	for _, verb := range []string{"get", "describe"} {
 		group, ok := verbs[verb].Subcommands["fm"]
@@ -68,27 +76,40 @@ func TestFeatureManagementScopesResolve(t *testing.T) {
 			t.Fatalf("%s fm is not in the catalog", verb)
 		}
 		for name, leaf := range group.Subcommands {
-			if !slices.Equal(leaf.RequiredScopes, []string{scope}) {
-				t.Errorf("%s fm %s required scopes = %v, want [%s]", verb, name, leaf.RequiredScopes, scope)
+			want, ok := fmLeafScopes[name]
+			if !ok {
+				t.Errorf("%s fm %s has no entry in fmLeafScopes", verb, name)
+				continue
+			}
+			if !slices.Equal(leaf.RequiredScopes, []string{want}) {
+				t.Errorf("%s fm %s required scopes = %v, want [%s]", verb, name, leaf.RequiredScopes, want)
 			}
 		}
 	}
 
+	for _, path := range [][]string{{"get", "fm", "projects"}, {"get", "fm", "release-stages"}, {"describe", "fm", "release-stage"}} {
+		c, _, err := rootCmd.Find(path)
+		if err != nil {
+			t.Fatal(err)
+		}
+		want := fmLeafScopes[c.Name()]
+		verb, resource := verbResource(c)
+		got, req := scopesForInvocation(c, verb, resource)
+		if req != scopeRequirementKnown || !slices.Equal(got, []string{want}) {
+			t.Errorf("--check-scopes for %v = %v (%v), want [%s]", path, got, req, want)
+		}
+	}
+
+	// The verdict names the command as typed, not a bare `get projects`.
 	c, _, err := rootCmd.Find([]string{"get", "fm", "projects"})
 	if err != nil {
 		t.Fatal(err)
 	}
 	verb, resource := verbResource(c)
-	got, req := scopesForInvocation(c, verb, resource)
-	if req != scopeRequirementKnown || !slices.Equal(got, []string{scope}) {
-		t.Errorf("--check-scopes for get fm projects = %v (%v), want [%s]", got, req, scope)
-	}
-
-	// The verdict names the command as typed, not a bare `get projects`.
 	if shown := shownResource(c, verb, resource); shown != "fm projects" {
 		t.Errorf("shown resource = %q, want \"fm projects\"", shown)
 	}
-	msg := (&ScopeError{Verb: verb, Resource: shownResource(c, verb, resource), Missing: []string{scope}}).Error()
+	msg := (&ScopeError{Verb: verb, Resource: shownResource(c, verb, resource), Missing: []string{fmLeafScopes["projects"]}}).Error()
 	if !strings.Contains(msg, `"get fm projects"`) {
 		t.Errorf("scope error = %q, want it to name \"get fm projects\"", msg)
 	}
@@ -140,4 +161,20 @@ func TestDescribeFMProjectTableGolden_Minimal(t *testing.T) {
 		Key: "payments", Name: "Payments", ChangeRequestsDisplay: "off", Version: 1,
 	})
 	cmdtestutil.AssertGoldenStripped(t, "describe-fm-project/table-minimal", buf.String())
+}
+
+func TestDescribeFMReleaseStageTableGolden(t *testing.T) {
+	created := time.Date(2026, 10, 1, 8, 0, 0, 0, time.UTC)
+	modified := time.Date(2026, 11, 3, 14, 30, 0, 0, time.UTC)
+	on := true
+	var buf bytes.Buffer
+	printFMReleaseStageDescribe(&buf, "checkout", &featuremanagement.ReleaseStage{
+		Key: "production", Name: "Production", Description: "Customer-facing traffic",
+		Type: "PRODUCTION", Guarded: &on, GuardedDisplay: "on", DisplayOrder: 2, Version: 3,
+		ModificationInfo: featuremanagement.ModificationInfo{
+			CreatedBy: "00000000-0000-4000-8000-0000000000a1", CreatedTime: created,
+			LastModifiedBy: "00000000-0000-4000-8000-0000000000a2", LastModifiedTime: modified,
+		},
+	})
+	cmdtestutil.AssertGoldenStripped(t, "describe-fm-release-stage/table", buf.String())
 }

@@ -1,0 +1,26 @@
+[2]:
+  - description: Customer-facing traffic
+    displayOrder: 2
+    guarded: true
+    key: production
+    modificationInfo:
+      createdBy: 00000000-0000-4000-8000-0000000000a1
+      createdTime: "2026-10-01T08:00:00Z"
+      lastModifiedBy: 00000000-0000-4000-8000-0000000000a2
+      lastModifiedTime: "2026-11-03T14:30:00Z"
+    name: Production
+    resourceContext:
+      operations[1]: write
+    type: PRODUCTION
+    version: 3
+  - description: ""
+    displayOrder: 0
+    key: development
+    modificationInfo:
+      createdBy: 00000000-0000-4000-8000-0000000000a1
+      createdTime: "2026-10-01T08:00:00Z"
+      lastModifiedBy: 00000000-0000-4000-8000-0000000000a2
+      lastModifiedTime: "2026-11-03T14:30:00Z"
+    name: Development
+    type: DEVELOPMENT
+    version: 1

@@ -1,0 +1,3 @@
+KEY           NAME          DESCRIPTION               TYPE          GUARDED   ORDER   LAST MODIFIED         VERSION   
+production    Production    Customer-facing traffic   PRODUCTION    on        2       2026-11-03 14:30:00   3         
+development   Development                             DEVELOPMENT   off       0       2026-11-03 14:30:00   1         

@@ -42,6 +42,7 @@ var getFMCmd = newGetFMCmd()
 func newGetFMCmd() *cobra.Command {
 	c := newFMGroupCmd("Get Feature Management resources")
 	c.AddCommand(newGetFMProjectsCmd())
+	c.AddCommand(newGetFMReleaseStagesCmd())
 	return c
 }
 
@@ -50,6 +51,7 @@ var describeFMCmd = newDescribeFMCmd()
 func newDescribeFMCmd() *cobra.Command {
 	c := newFMGroupCmd("Show details of Feature Management resources")
 	c.AddCommand(newDescribeFMProjectCmd())
+	c.AddCommand(newDescribeFMReleaseStageCmd())
 	return c
 }
 
@@ -170,13 +172,7 @@ func printFMProjectDescribe(w io.Writer, p *featuremanagement.Project) {
 	output.FprintDescribeKV(w, "Change Requests:", kw, "%s", p.ChangeRequestsDisplay)
 	output.FprintDescribeKV(w, "Version:", kw, "%d", p.Version)
 
-	mi := p.ModificationInfo
-	if !mi.CreatedTime.IsZero() {
-		output.FprintDescribeKV(w, "Created:", kw, "%s by %s", mi.CreatedTime.UTC().Format("2006-01-02 15:04:05"), mi.CreatedBy)
-	}
-	if !mi.LastModifiedTime.IsZero() {
-		output.FprintDescribeKV(w, "Last Modified:", kw, "%s by %s", mi.LastModifiedTime.UTC().Format("2006-01-02 15:04:05"), mi.LastModifiedBy)
-	}
+	printFMModificationInfo(w, kw, p.ModificationInfo)
 	if p.ResourceContext != nil && len(p.ResourceContext.Operations) > 0 {
 		output.FprintDescribeKV(w, "Operations:", kw, "%s", strings.Join(p.ResourceContext.Operations, ", "))
 	}
