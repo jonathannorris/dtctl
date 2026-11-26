@@ -3801,3 +3801,23 @@ func TestGolden_FMFeatureTargeting(t *testing.T) {
 		},
 	}, []string{"json", "yaml", "toon"})
 }
+
+func TestGolden_FMContextAttributes(t *testing.T) {
+	three := 3
+	mi := featuremanagement.ModificationInfo{
+		CreatedBy: "00000000-0000-4000-8000-0000000000a1", CreatedTime: time.Date(2026, 10, 1, 8, 0, 0, 0, time.UTC),
+		LastModifiedBy: "00000000-0000-4000-8000-0000000000a2", LastModifiedTime: time.Date(2026, 11, 3, 14, 30, 0, 0, time.UTC),
+	}
+	assertFMGoldens(t, "context-attribute", []featuremanagement.ContextAttribute{
+		{
+			Key: "plan-tier", Name: "Plan tier", Description: "Customer plan tier", Schema: `{"type":"string"}`,
+			Type: "STRING", ContextKey: "plan.tier", ProjectKey: "checkout", ModificationInfo: mi, Version: 2,
+			UsageCount: &three, UsagesDisplay: "3", BuiltInDisplay: "no", LastModifiedDisplay: "2026-11-03 14:30:00",
+		},
+		{
+			Key: "targeting-key", Name: "Targeting key", Schema: `{"type":"string"}`,
+			Type: "STRING", ContextKey: "targetingKey", ProjectKey: "checkout", ModificationInfo: mi, Version: 1,
+			BuiltIn: true, UsagesDisplay: "-", BuiltInDisplay: "yes", LastModifiedDisplay: "2026-11-03 14:30:00",
+		},
+	})
+}

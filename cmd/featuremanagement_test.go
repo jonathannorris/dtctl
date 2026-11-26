@@ -58,13 +58,15 @@ func TestDevelopmentResourceFeaturesAreRegistered(t *testing.T) {
 // fmLeafScopes is the read scope each fm leaf requires, keyed by the leaf's
 // command name on both verbs.
 var fmLeafScopes = map[string]string{
-	"projects":          "feature-management:projects:read",
-	"project":           "feature-management:projects:read",
-	"release-stages":    "feature-management:release-stages:read",
-	"release-stage":     "feature-management:release-stages:read",
-	"features":          "feature-management:features:read",
-	"feature":           "feature-management:features:read",
-	"feature-targeting": "feature-management:release-stage-targetings:read",
+	"projects":           "feature-management:projects:read",
+	"project":            "feature-management:projects:read",
+	"release-stages":     "feature-management:release-stages:read",
+	"release-stage":      "feature-management:release-stages:read",
+	"features":           "feature-management:features:read",
+	"feature":            "feature-management:features:read",
+	"feature-targeting":  "feature-management:release-stage-targetings:read",
+	"context-attributes": "feature-management:context-attributes:read",
+	"context-attribute":  "feature-management:context-attributes:read",
 }
 
 // With the opt-in, the catalog lists the group-qualified scope on each leaf
@@ -294,4 +296,33 @@ func TestGetFMFeatureTargetingTableGolden(t *testing.T) {
 		}
 		cmdtestutil.AssertGoldenStripped(t, "get-fm-feature-targeting/"+format+"-one-stage", buf.String())
 	}
+}
+
+func TestDescribeFMContextAttributeTableGolden(t *testing.T) {
+	three := 3
+	var buf bytes.Buffer
+	printFMContextAttributeDescribe(&buf, &featuremanagement.ContextAttribute{
+		Key: "plan-tier", Name: "Plan tier", Description: "Customer plan tier", ProjectKey: "checkout",
+		Schema: `{"type":"string"}`, Type: "STRING", ContextKey: "plan.tier", Version: 2,
+		UsageCount: &three, UsagesDisplay: "3", BuiltInDisplay: "no",
+		ModificationInfo: featuremanagement.ModificationInfo{
+			CreatedBy: "00000000-0000-4000-8000-0000000000a1", CreatedTime: time.Date(2026, 10, 1, 8, 0, 0, 0, time.UTC),
+			LastModifiedBy: "00000000-0000-4000-8000-0000000000a2", LastModifiedTime: time.Date(2026, 11, 3, 14, 30, 0, 0, time.UTC),
+		},
+	}, []featuremanagement.ContextAttributeUsage{
+		{FeatureKey: "new-checkout", FeatureName: "New checkout", ReleaseStages: []featuremanagement.ContextAttributeUsageReleaseStage{
+			{ReleaseStageKey: "staging"}, {ReleaseStageKey: "production"}}},
+		{FeatureKey: "pricing", FeatureName: "Pricing", ReleaseStages: []featuremanagement.ContextAttributeUsageReleaseStage{
+			{ReleaseStageKey: "production"}}},
+	})
+	cmdtestutil.AssertGoldenStripped(t, "describe-fm-context-attribute/table", buf.String())
+}
+
+func TestDescribeFMContextAttributeTableGolden_Unused(t *testing.T) {
+	var buf bytes.Buffer
+	printFMContextAttributeDescribe(&buf, &featuremanagement.ContextAttribute{
+		Key: "targeting-key", Name: "Targeting key", ProjectKey: "checkout", Type: "STRING",
+		ContextKey: "targetingKey", Version: 1, UsagesDisplay: "0", BuiltInDisplay: "yes",
+	}, nil)
+	cmdtestutil.AssertGoldenStripped(t, "describe-fm-context-attribute/table-unused", buf.String())
 }

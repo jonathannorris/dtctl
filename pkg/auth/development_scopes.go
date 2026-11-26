@@ -18,6 +18,7 @@ var developmentResources = map[string]string{
 	"fm/release-stage":     "feature-management",
 	"fm/feature":           "feature-management",
 	"fm/feature-targeting": "feature-management",
+	"fm/context-attribute": "feature-management",
 }
 
 // DevelopmentResourceFeatures returns a copy of the resource-to-feature map,

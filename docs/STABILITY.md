@@ -210,9 +210,9 @@ deprecation cycle. Nothing stated here is relaxed by reaching 1.0.
 
 ## Summary
 
-- commands: 269 stable, 22 experimental, 26 development
+- commands: 269 stable, 22 experimental, 28 development
 - global flags (accepted on every command): 11
-- entries below (commands + flags): 996
+- entries below (commands + flags): 998
 
 ## Surface
 
@@ -589,6 +589,7 @@ describe extension-config            stable
   --config-id                        stable
 describe fm                          development  (opt-in key: feature-management)
   --project                          development
+describe fm context-attribute        development
 describe fm feature                  development
 describe fm feature-targeting        development
   --stage                            development
@@ -824,6 +825,7 @@ get extensions                       stable
   --name                             stable
 get fm                               development  (opt-in key: feature-management)
   --project                          development
+get fm context-attributes            development
 get fm feature-targeting             development
   --stage                            development
 get fm features                      development

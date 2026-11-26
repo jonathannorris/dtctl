@@ -1,0 +1,15 @@
+key: plan-tier
+name: Plan tier
+description: Customer plan tier
+schema: '{"type":"string"}'
+type: STRING
+contextKey: plan.tier
+projectKey: checkout
+modificationInfo:
+  createdBy: 00000000-0000-4000-8000-0000000000a1
+  createdTime: 2026-10-01T08:00:00Z
+  lastModifiedBy: 00000000-0000-4000-8000-0000000000a2
+  lastModifiedTime: 2026-11-03T14:30:00Z
+version: 2
+usageCount: 3
+builtIn: false

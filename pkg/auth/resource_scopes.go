@@ -254,6 +254,7 @@ var ResourceScopes = map[string]AccessScopes{
 	"fm/release-stage":     {Read: []string{"feature-management:release-stages:read"}},
 	"fm/feature":           {Read: []string{"feature-management:features:read"}},
 	"fm/feature-targeting": {Read: []string{"feature-management:release-stage-targetings:read"}},
+	"fm/context-attribute": {Read: []string{"feature-management:context-attributes:read"}},
 }
 
 // sharing reads the document's metadata for the ownership check, then works

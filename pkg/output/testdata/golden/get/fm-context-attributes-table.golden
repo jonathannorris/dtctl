@@ -1,0 +1,3 @@
+KEY             NAME            TYPE     CONTEXT KEY    RULES   BUILT IN   
+plan-tier       Plan tier       STRING   plan.tier      3       no         
+targeting-key   Targeting key   STRING   targetingKey   -       yes        

@@ -1,0 +1,11 @@
+Key:           targeting-key
+Name:          Targeting key
+Project:       checkout
+Context Key:   targetingKey
+Type:          STRING
+Built-in:      yes
+Rules:         0
+Version:       1
+
+Used By:
+  (no targeting rule references it)

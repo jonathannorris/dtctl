@@ -45,6 +45,7 @@ func newGetFMCmd() *cobra.Command {
 	c.AddCommand(newGetFMReleaseStagesCmd())
 	c.AddCommand(newGetFMFeaturesCmd())
 	c.AddCommand(newGetFMFeatureTargetingCmd())
+	c.AddCommand(newGetFMContextAttributesCmd())
 	return c
 }
 
@@ -56,6 +57,7 @@ func newDescribeFMCmd() *cobra.Command {
 	c.AddCommand(newDescribeFMReleaseStageCmd())
 	c.AddCommand(newDescribeFMFeatureCmd())
 	c.AddCommand(newDescribeFMFeatureTargetingCmd())
+	c.AddCommand(newDescribeFMContextAttributeCmd())
 	return c
 }
 
