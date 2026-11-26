@@ -1,0 +1,13 @@
+[2]:
+  - modificationInfo:
+      createdBy: 00000000-0000-4000-8000-0000000000a1
+      createdTime: "2026-10-01T08:00:00Z"
+      lastModifiedBy: 00000000-0000-4000-8000-0000000000a1
+      lastModifiedTime: "2026-10-01T08:00:00Z"
+    releaseStageKey: production
+    sdkKey: dt01.server_us_Abcdefghij.********
+    type: server
+    version: 1
+  - releaseStageKey: production
+    sdkKey: dt01.web_us_Klmnopqrst.********
+    type: web

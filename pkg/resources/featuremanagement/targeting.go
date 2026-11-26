@@ -354,16 +354,40 @@ func (h *Handler) GetFeatureTargeting(projectKey, featureKeyOrName, releaseStage
 // the features read scope) and calls fn again with the key it names. A name
 // nobody has fails with the feature lookup's "not found" error.
 func withFeatureKey[T any](h *Handler, projectKey, keyOrName string, fn func(string) (T, error)) (T, error) {
+	return withResolvedKey(keyOrName, fn, func() (string, error) {
+		f, err := h.GetFeature(projectKey, keyOrName)
+		if err != nil {
+			return "", err
+		}
+		return f.Key, nil
+	})
+}
+
+// withReleaseStageKey is withFeatureKey for a release stage argument.
+func withReleaseStageKey[T any](h *Handler, projectKey, keyOrName string, fn func(string) (T, error)) (T, error) {
+	return withResolvedKey(keyOrName, fn, func() (string, error) {
+		rs, err := h.GetReleaseStage(projectKey, keyOrName)
+		if err != nil {
+			return "", err
+		}
+		return rs.Key, nil
+	})
+}
+
+// withResolvedKey calls fn with keyOrName as a key and, on a key miss, with
+// the key resolve finds for it as a name. fn's own error stands when resolve
+// finds the same key; resolve's error stands when it finds none.
+func withResolvedKey[T any](keyOrName string, fn func(string) (T, error), resolve func() (string, error)) (T, error) {
 	v, err := fn(keyOrName)
 	if err == nil || !isKeyMiss(err) {
 		return v, err
 	}
-	f, ferr := h.GetFeature(projectKey, keyOrName)
-	if ferr != nil {
-		return v, ferr
+	key, rerr := resolve()
+	if rerr != nil {
+		return v, rerr
 	}
-	if f.Key == keyOrName {
+	if key == keyOrName {
 		return v, err
 	}
-	return fn(f.Key)
+	return fn(key)
 }

@@ -3691,15 +3691,7 @@ func assertFMGoldens[T any](t *testing.T, name string, items []T) {
 // print something else (rule rows, say), so only getFormats are its own.
 func assertFMGoldensIn[T any](t *testing.T, name string, items []T, getFormats []string) {
 	t.Helper()
-	for _, format := range getFormats {
-		t.Run("get/"+format, func(t *testing.T) {
-			var buf bytes.Buffer
-			if err := NewPrinterWithWriter(format, &buf).PrintList(items); err != nil {
-				t.Fatalf("PrintList failed: %v", err)
-			}
-			assertGolden(t, "get/fm-"+name+"s-"+format, buf.String())
-		})
-	}
+	assertFMGetGoldens(t, name, items, getFormats)
 	for _, format := range []string{"json", "yaml", "toon"} {
 		t.Run("describe/"+format, func(t *testing.T) {
 			var buf bytes.Buffer
@@ -3707,6 +3699,21 @@ func assertFMGoldensIn[T any](t *testing.T, name string, items []T, getFormats [
 				t.Fatalf("Print failed: %v", err)
 			}
 			assertGolden(t, "describe/fm-"+name+"-"+format, buf.String())
+		})
+	}
+}
+
+// assertFMGetGoldens snapshots a Feature Management list in getFormats, for
+// a resource that has no describe command.
+func assertFMGetGoldens[T any](t *testing.T, name string, items []T, getFormats []string) {
+	t.Helper()
+	for _, format := range getFormats {
+		t.Run("get/"+format, func(t *testing.T) {
+			var buf bytes.Buffer
+			if err := NewPrinterWithWriter(format, &buf).PrintList(items); err != nil {
+				t.Fatalf("PrintList failed: %v", err)
+			}
+			assertGolden(t, "get/fm-"+name+"s-"+format, buf.String())
 		})
 	}
 }
@@ -3820,4 +3827,18 @@ func TestGolden_FMContextAttributes(t *testing.T) {
 			BuiltIn: true, UsagesDisplay: "-", BuiltInDisplay: "yes", LastModifiedDisplay: "2026-11-03 14:30:00",
 		},
 	})
+}
+
+// SDK keys print masked values by default: the public identifier, never the secret.
+func TestGolden_FMSDKKeys(t *testing.T) {
+	one := 1
+	mi := &featuremanagement.ModificationInfo{
+		CreatedBy: "00000000-0000-4000-8000-0000000000a1", CreatedTime: time.Date(2026, 10, 1, 8, 0, 0, 0, time.UTC),
+		LastModifiedBy: "00000000-0000-4000-8000-0000000000a1", LastModifiedTime: time.Date(2026, 10, 1, 8, 0, 0, 0, time.UTC),
+	}
+	assertFMGetGoldens(t, "sdk-key", []featuremanagement.SDKKey{
+		{ReleaseStageKey: "production", SDKKey: "dt01.server_us_Abcdefghij.********", Type: "server", ModificationInfo: mi,
+			CreatedDisplay: "2026-10-01 08:00:00", CreatedByDisplay: mi.CreatedBy, Version: &one},
+		{ReleaseStageKey: "production", SDKKey: "dt01.web_us_Klmnopqrst.********", Type: "web", CreatedDisplay: "-"},
+	}, fmGetFormats)
 }

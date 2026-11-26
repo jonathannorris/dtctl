@@ -210,9 +210,9 @@ deprecation cycle. Nothing stated here is relaxed by reaching 1.0.
 
 ## Summary
 
-- commands: 269 stable, 22 experimental, 28 development
+- commands: 269 stable, 22 experimental, 29 development
 - global flags (accepted on every command): 11
-- entries below (commands + flags): 998
+- entries below (commands + flags): 1001
 
 ## Surface
 
@@ -831,6 +831,9 @@ get fm feature-targeting             development
 get fm features                      development
 get fm projects                      development
 get fm release-stages                development
+get fm sdk-keys                      development
+  --reveal                           development
+  --type                             development
 get functions                        stable
   --app                              stable
 get gcp                              stable

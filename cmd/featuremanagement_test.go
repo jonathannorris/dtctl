@@ -67,6 +67,7 @@ var fmLeafScopes = map[string]string{
 	"feature-targeting":  "feature-management:release-stage-targetings:read",
 	"context-attributes": "feature-management:context-attributes:read",
 	"context-attribute":  "feature-management:context-attributes:read",
+	"sdk-keys":           "feature-management:sdk-keys:read",
 }
 
 // With the opt-in, the catalog lists the group-qualified scope on each leaf

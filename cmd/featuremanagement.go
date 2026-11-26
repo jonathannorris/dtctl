@@ -46,6 +46,7 @@ func newGetFMCmd() *cobra.Command {
 	c.AddCommand(newGetFMFeaturesCmd())
 	c.AddCommand(newGetFMFeatureTargetingCmd())
 	c.AddCommand(newGetFMContextAttributesCmd())
+	c.AddCommand(newGetFMSDKKeysCmd())
 	return c
 }
 
