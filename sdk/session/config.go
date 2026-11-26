@@ -194,6 +194,46 @@ type Context struct {
 	// off nothing is written. Only aggregate counters are stored, never query
 	// text, results, identities, or tokens. See docs/USAGE_TRACKING.md.
 	UsageTracking bool `yaml:"usage-tracking,omitempty" table:"-"`
+	// FeatureManagement holds this context's Feature Management defaults.
+	// Namespaced because every other context field applies to the whole
+	// environment; a bare "project" would claim a name other product areas
+	// could want.
+	FeatureManagement *FeatureManagementSettings `yaml:"feature-management,omitempty" table:"-"`
+}
+
+// FeatureManagementSettings are a context's Feature Management defaults.
+type FeatureManagementSettings struct {
+	// Project is the project key Feature Management commands use when they
+	// are not given --project.
+	Project string `yaml:"project,omitempty"`
+}
+
+// FMProject returns the current context's default Feature Management
+// project, or "" when it has none.
+func (c *Config) FMProject() string {
+	ctx, err := c.CurrentContextObj()
+	if err != nil || ctx.FeatureManagement == nil {
+		return ""
+	}
+	return ctx.FeatureManagement.Project
+}
+
+// setFMProject sets or, with "", clears a context's default project, dropping
+// the block once it is empty so a cleared default leaves no trace in the file.
+func (ctx *Context) setFMProject(project string) {
+	if project == "" {
+		if ctx.FeatureManagement != nil {
+			ctx.FeatureManagement.Project = ""
+			if *ctx.FeatureManagement == (FeatureManagementSettings{}) {
+				ctx.FeatureManagement = nil
+			}
+		}
+		return
+	}
+	if ctx.FeatureManagement == nil {
+		ctx.FeatureManagement = &FeatureManagementSettings{}
+	}
+	ctx.FeatureManagement.Project = project
 }
 
 // SpillConfig holds the result-spill settings (D15). Threshold and TTL are kept
@@ -1071,6 +1111,9 @@ type ContextOptions struct {
 	// existing value untouched (the caller did not ask to change it), so a
 	// plain update cannot silently switch tracking off.
 	UsageTracking *bool
+	// FMProject sets the context's default Feature Management project. nil
+	// leaves it untouched; a pointer to "" clears it.
+	FMProject *string
 }
 
 // SetContext creates or updates a context
@@ -1107,6 +1150,9 @@ func (c *Config) SetContextWithOptions(name, environment, tokenRef string, opts 
 				if opts.UsageTracking != nil {
 					c.Contexts[i].Context.UsageTracking = *opts.UsageTracking
 				}
+				if opts.FMProject != nil {
+					c.Contexts[i].Context.setFMProject(*opts.FMProject)
+				}
 			}
 			return
 		}
@@ -1124,6 +1170,9 @@ func (c *Config) SetContextWithOptions(name, environment, tokenRef string, opts 
 		ctx.StabilityExceptions = opts.StabilityExceptions
 		if opts.UsageTracking != nil {
 			ctx.UsageTracking = *opts.UsageTracking
+		}
+		if opts.FMProject != nil {
+			ctx.setFMProject(*opts.FMProject)
 		}
 	}
 

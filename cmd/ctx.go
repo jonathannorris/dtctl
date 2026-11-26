@@ -370,6 +370,9 @@ type contextSettings struct {
 	// usageTracking switches the context's local usage ledger on or off. nil
 	// leaves it untouched (the flag was not passed).
 	usageTracking *bool
+	// fmProject sets the context's default Feature Management project. nil
+	// leaves it untouched (the flag was not passed); "" clears it.
+	fmProject *string
 	// global writes to the global config instead of a discovered .dtctl.yaml.
 	global bool
 }
@@ -389,6 +392,11 @@ func contextSettingsFromFlags(cmd *cobra.Command) contextSettings {
 	if cmd.Flags().Changed("usage-tracking") {
 		on, _ := cmd.Flags().GetBool("usage-tracking")
 		s.usageTracking = &on
+	}
+	if cmd.Flags().Changed(fmProjectContextFlag) {
+		v, _ := cmd.Flags().GetString(fmProjectContextFlag)
+		v = strings.TrimSpace(v)
+		s.fmProject = &v
 	}
 	if cmd.Flags().Changed("stability-exception") {
 		vals, _ := cmd.Flags().GetStringArray("stability-exception")
@@ -420,6 +428,7 @@ func addContextFlags(cmd *cobra.Command) {
 	cmd.Flags().Bool("global", false, "write to the global config instead of a discovered .dtctl.yaml")
 	cmd.Flags().Bool("usage-tracking", false, "keep a local tally of the DQL queries dtctl runs in this context and the data they scan (see 'dtctl usage'; --usage-tracking=false turns it off)")
 	stability.MarkFlag(cmd, "usage-tracking", stability.Experimental, "0.43.0")
+	addFMProjectContextFlag(cmd)
 	registerFlagCompletion(cmd, "profile", completeProfileNames)
 	registerFlagCompletion(cmd, "min-stability", completeStabilityLevels)
 }
@@ -503,6 +512,7 @@ func setContext(ctx context.Context, name string, s contextSettings) error {
 		MinStability:        minStability,
 		StabilityExceptions: s.stabilityExceptions,
 		UsageTracking:       s.usageTracking,
+		FMProject:           s.fmProject,
 	}
 
 	cfg.SetContextWithOptions(name, environment, tokenRef, opts)

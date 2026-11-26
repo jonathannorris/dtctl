@@ -22,6 +22,8 @@ contexts:
       query-limits:
         scan-limit-gbytes: 50
       usage-tracking: true
+      feature-management:
+        project: checkout
       future-context-field: keep-me-too
   - name: prod
     context:

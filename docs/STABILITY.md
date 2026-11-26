@@ -212,7 +212,7 @@ deprecation cycle. Nothing stated here is relaxed by reaching 1.0.
 
 - commands: 269 stable, 22 experimental, 20 development
 - global flags (accepted on every command): 11
-- entries below (commands + flags): 984
+- entries below (commands + flags): 988
 
 ## Surface
 
@@ -328,6 +328,7 @@ config set                           stable
 config set-context                   stable
   --description                      stable
   --environment                      stable
+  --fm-project                       experimental  since 0.48.0  (declared)
   --global                           stable
   --min-stability                    stable
   --profile                          stable
@@ -474,6 +475,7 @@ ctx describe                         stable
 ctx set                              stable
   --description                      stable
   --environment                      stable
+  --fm-project                       experimental  since 0.48.0  (declared)
   --global                           stable
   --min-stability                    stable
   --profile                          stable
@@ -586,6 +588,7 @@ describe extension                   stable
 describe extension-config            stable
   --config-id                        stable
 describe fm                          development  (opt-in key: feature-management)
+  --project                          development
 describe fm project                  development
 describe function                    stable
 describe gcp                         stable
@@ -816,6 +819,7 @@ get extension-configs                stable
 get extensions                       stable
   --name                             stable
 get fm                               development  (opt-in key: feature-management)
+  --project                          development
 get fm projects                      development
 get functions                        stable
   --app                              stable

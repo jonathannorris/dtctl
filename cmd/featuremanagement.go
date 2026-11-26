@@ -27,12 +27,14 @@ const (
 // resources; its stability tier comes from addDevelopmentCommand, which
 // covers every resource under it.
 func newFMGroupCmd(short string) *cobra.Command {
-	return &cobra.Command{
+	c := &cobra.Command{
 		Use:     fmGroupName,
 		Aliases: []string{fmGroupAlias},
 		Short:   short,
 		RunE:    requireSubcommand,
 	}
+	addFMProjectFlag(c)
+	return c
 }
 
 var getFMCmd = newGetFMCmd()
