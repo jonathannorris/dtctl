@@ -68,6 +68,7 @@ var createFMCmd = newCreateFMCmd()
 
 func newCreateFMCmd() *cobra.Command {
 	c := newFMGroupCmd("Create Feature Management resources")
+	c.AddCommand(newCreateFMFeatureCmd())
 	c.AddCommand(newCreateFMFeatureTargetingCmd())
 	return c
 }
@@ -76,6 +77,7 @@ var updateFMCmd = newUpdateFMCmd()
 
 func newUpdateFMCmd() *cobra.Command {
 	c := newFMGroupCmd("Update Feature Management resources")
+	c.AddCommand(newUpdateFMFeatureCmd())
 	c.AddCommand(newUpdateFMFeatureTargetingCmd())
 	return c
 }
@@ -84,6 +86,7 @@ var deleteFMCmd = newDeleteFMCmd()
 
 func newDeleteFMCmd() *cobra.Command {
 	c := newFMGroupCmd("Delete Feature Management resources")
+	c.AddCommand(newDeleteFMFeatureCmd())
 	c.AddCommand(newDeleteFMFeatureTargetingCmd())
 	return c
 }

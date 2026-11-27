@@ -252,7 +252,11 @@ var ResourceScopes = map[string]AccessScopes{
 	// generic enough to collide with other resources.
 	"fm/project":       {Read: []string{"feature-management:projects:read"}},
 	"fm/release-stage": {Read: []string{"feature-management:release-stages:read"}},
-	"fm/feature":       {Read: []string{"feature-management:features:read"}},
+	"fm/feature": {
+		Read:   []string{"feature-management:features:read"},
+		Write:  []string{"feature-management:features:write"},
+		Delete: []string{"feature-management:features:delete"},
+	},
 	// A rule delete is a targeting update, so delete needs the write scope.
 	"fm/feature-targeting": {
 		Read:   []string{"feature-management:release-stage-targetings:read"},

@@ -43,6 +43,9 @@ var fileFlagProbeFlagHints = map[string][]string{
 // the probe reaches fails the test until it is removed.
 var fileFlagUnreached = map[string]string{
 	"apply --write-id": "it writes only after a successful apply, which needs a server",
+	// Development-tier commands are not in the tree the probe walks; their
+	// file flags are declared with markFileFlag all the same.
+	"featuremanagement_feature_write.go:newCreateFMFeatureCmd": "a development-tier command, not registered in the probed tree",
 }
 
 // TestFileFlagsAreDeclared holds that every flag naming a file a command reads

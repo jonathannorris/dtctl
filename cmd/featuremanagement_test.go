@@ -138,6 +138,9 @@ func TestFeatureManagementWriteScopesResolve(t *testing.T) {
 		"delete fm feature-targeting": targeting,
 		"enable fm feature":           targeting,
 		"disable fm feature":          targeting,
+		"create fm feature":           {"feature-management:features:write"},
+		"update fm feature":           {"feature-management:features:read", "feature-management:features:write"},
+		"delete fm feature":           {"feature-management:features:delete", "feature-management:features:read"},
 	}
 	verbs := commands.BuildVerbs(rootCmd)
 	for path, scopes := range want {

@@ -210,9 +210,9 @@ deprecation cycle. Nothing stated here is relaxed by reaching 1.0.
 
 ## Summary
 
-- commands: 269 stable, 22 experimental, 41 development
+- commands: 269 stable, 22 experimental, 44 development
 - global flags (accepted on every command): 11
-- entries below (commands + flags): 1048
+- entries below (commands + flags): 1080
 
 ## Surface
 
@@ -414,6 +414,17 @@ create extension                     stable
   --version                          stable
 create fm                            development  (opt-in key: feature-management)
   --project                          development
+create fm feature                    development
+  --description                      development
+  --file                             development
+  --flag-key                         development
+  --flag-type                        development
+  --flag-value                       development
+  --maintainers                      development
+  --name                             development
+  --owner                            development
+  --type                             development
+  --variants                         development
 create fm feature-targeting          development
   --bucketing-key                    development
   --condition                        development
@@ -531,6 +542,8 @@ delete edgeconnect                   stable
   --yes                              stable
 delete fm                            development  (opt-in key: feature-management)
   --project                          development
+delete fm feature                    development
+  --yes                              development
 delete fm feature-targeting          development
   --all                              development
   --position                         development
@@ -1189,6 +1202,25 @@ update extensions                    stable
   --with-configurations              stable
 update fm                            development  (opt-in key: feature-management)
   --project                          development
+update fm feature                    development
+  --add-flag                         development
+  --add-variant                      development
+  --description                      development
+  --display-order                    development
+  --flag-description                 development
+  --flag-name                        development
+  --flag-type                        development
+  --flag-value                       development
+  --maintainers                      development
+  --name                             development
+  --owner                            development
+  --remove-flag                      development
+  --remove-variant                   development
+  --status                           development
+  --type                             development
+  --value                            development
+  --variant-name                     development
+  --version                          development
 update fm feature-targeting          development
   --bucketing-key                    development
   --clear-rollout                    development

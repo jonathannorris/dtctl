@@ -22,6 +22,7 @@ func TestPromptCallSitesAreKnown(t *testing.T) {
 		"auth.go:authConfirmFunc": "auth login's consent prompt: asks only when stdin is a terminal file, which a service never has, and auth is blocked in the engine",
 		"usage.go:runUsageReset":  "usage reset --yes",
 		"featuremanagement_targeting_write.go:newDeleteFMFeatureTargetingCmd": "delete fm feature-targeting --all --yes",
+		"featuremanagement_write.go:confirmFMDelete":                          "delete fm <resource> --yes",
 		"create_breakpoints.go:newCreateBreakpointCmd":                        "--yes",
 		"update_breakpoints.go:newUpdateBreakpointCmd":                        "--yes",
 		"delete_breakpoints.go:runDeleteAllBreakpointsWithOps":                "delete breakpoint --yes",

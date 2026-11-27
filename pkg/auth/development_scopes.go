@@ -38,7 +38,16 @@ func DevelopmentResourceFeatures() map[string]string {
 // its writes are refused at readwrite-mine (design decision 12) and their
 // scopes are not requested there.
 var developmentSharedWrites = map[string][]Access{
+	"fm/feature":           {AccessWrite, AccessDelete},
 	"fm/feature-targeting": {AccessWrite, AccessDelete},
+}
+
+// developmentSharedWriteExtras are scopes a development-tier resource's
+// writes need beyond its ResourceScopes entry, requested with
+// developmentSharedWrites. A feature's descriptive update has a scope of its
+// own, so that tidying descriptions can be granted without behavior changes.
+var developmentSharedWriteExtras = map[string][]string{
+	"fm/feature": {"feature-management:features.metadata:write"},
 }
 
 // developmentCommandScopes is CommandScopes for development-tier commands:
@@ -56,6 +65,12 @@ var developmentCommandScopes = map[string][]string{
 	"delete fm/feature-targeting": fmTargetingWriteScopes,
 	"enable fm/feature":           fmTargetingWriteScopes,
 	"disable fm/feature":          fmTargetingWriteScopes,
+
+	// Feature updates and deletes read the feature first. A descriptive
+	// update writes with features.metadata:write instead of features:write;
+	// the catalog lists the full update's scope, the common case.
+	"update fm/feature": {"feature-management:features:read", "feature-management:features:write"},
+	"delete fm/feature": {"feature-management:features:read", "feature-management:features:delete"},
 }
 
 var (
@@ -89,6 +104,7 @@ func LoginScopes(level config.SafetyLevel, enabled map[string]bool) []string {
 			s.addResource(resource, AccessRead)
 			if grantsSharedWrites(level) {
 				s.addResource(resource, developmentSharedWrites[resource]...)
+				s.add(developmentSharedWriteExtras[resource]...)
 			}
 		}
 	}
