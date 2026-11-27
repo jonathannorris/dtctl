@@ -28,7 +28,8 @@ const fmConditionHelp = `Conditions (--condition '<context-key> <operator> <valu
   Values are comma-separated. The value type comes from the project's context
   attribute with that context key; targetingKey is always STRING. '<key> = a,b'
   matches any of the values. All of a rule's conditions must match, and a rule
-  with none matches all requests.
+  with none matches all requests. The symbolic operators need no spaces
+  ('country!=us', 'targetingKey=user1,user2'); the word operators do.
 
   STRING      =  !=  contains  !contains  starts-with  ends-with  empty  !empty
   NUMBER      =  !=  >  >=  <  <=
@@ -314,7 +315,7 @@ Examples:
 				return err
 			}
 			if !cmd.Flags().Changed("position") {
-				return fmt.Errorf("--position is required: the rule to change, by 0-based position or id")
+				return fmt.Errorf("--position is required: the rule to change, by 0-based position or id ('dtctl create fm feature-targeting' adds a new rule)")
 			}
 			if clearRollout && len(rule.rollout) > 0 {
 				return fmt.Errorf("--clear-rollout and --rollout cannot be combined")

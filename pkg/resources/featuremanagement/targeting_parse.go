@@ -68,8 +68,20 @@ type ConditionExpr struct {
 // ParseConditionExpr parses '<context-key> <operator> <values>', values
 // comma-separated. It checks the operator and the number of values; the value
 // type comes later, from the project's context attributes.
+//
+// A symbolic operator (= != > >= < <= ^ ~) needs no spaces around it:
+// 'country!=us' reads as 'country != us'. The word operators (contains,
+// before, exists, ...) do, since they could be part of a key.
 func ParseConditionExpr(s string) (ConditionExpr, error) {
 	fields := strings.Fields(s)
+	if len(fields) < 2 || conditionOperators[fields[1]] == "" {
+		// A value that starts with another operator character means an
+		// operator dtctl does not know ('==', '=<'): leave that to the
+		// unknown-operator error below rather than reading it as a value.
+		if m := compactCondition.FindStringSubmatch(s); m != nil && !strings.ContainsAny(m[3][:min(1, len(m[3]))], "=!<>^~") {
+			fields = append([]string{m[1], m[2]}, strings.Fields(m[3])...)
+		}
+	}
 	if len(fields) < 2 {
 		return ConditionExpr{}, fmt.Errorf("invalid condition %q: want '<context-key> <operator> <values>'", s)
 	}
@@ -96,6 +108,11 @@ func ParseConditionExpr(s string) (ConditionExpr, error) {
 	}
 	return e, nil
 }
+
+// compactCondition splits a condition written without spaces at its first
+// symbolic operator, the two-character ones tried before their one-character
+// prefixes so 'a>=1' is not read as 'a > =1'.
+var compactCondition = regexp.MustCompile(`^\s*([^\s=!<>^~]+)\s*(!=|>=|<=|=|<|>|\^|~)\s*(.*)$`)
 
 func sortedOperators() []string {
 	ops := make([]string, 0, len(conditionOperators))
@@ -383,7 +400,9 @@ func ResolveRulePosition(rules []TargetingRule, s string, insert bool) (int, err
 		if err != nil || n > limit {
 			switch {
 			case len(rules) == 0 && !insert:
-				return 0, fmt.Errorf("position %s is out of range: the stage has no rules", s)
+				return 0, fmt.Errorf("position %s is out of range: the stage has no rules; 'dtctl create fm feature-targeting' adds one", s)
+			case !insert && n == len(rules):
+				return 0, fmt.Errorf("position %s is out of range: positions are 0 to %d; 'dtctl create fm feature-targeting' adds a rule there", s, limit)
 			default:
 				return 0, fmt.Errorf("position %s is out of range: positions are 0 to %d", s, limit)
 			}

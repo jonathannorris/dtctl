@@ -65,6 +65,24 @@ func TestParseConditionExpr(t *testing.T) {
 	if err != nil || e.ContextKey != "targetingKey" || e.Operator != "=" || strings.Join(e.Values, "|") != "user-1|user-2" {
 		t.Errorf("parsed = %+v, %v", e, err)
 	}
+	// Symbolic operators need no spaces; the two-character ones win.
+	for _, tt := range []struct{ in, key, op, values string }{
+		{"targetingKey=user1,user2,user3", "targetingKey", "=", "user1|user2|user3"},
+		{"country!=us", "country", "!=", "us"},
+		{"app.version>=2.3.0", "app.version", ">=", "2.3.0"},
+		{"n<=5", "n", "<=", "5"},
+		{"n < 5", "n", "<", "5"},
+		{"app.version^1.2.0", "app.version", "^", "1.2.0"},
+		{"plan.tier= pro, enterprise", "plan.tier", "=", "pro|enterprise"},
+	} {
+		e, err := ParseConditionExpr(tt.in)
+		if err != nil || e.ContextKey != tt.key || e.Operator != tt.op || strings.Join(e.Values, "|") != tt.values {
+			t.Errorf("ParseConditionExpr(%q) = %+v, %v", tt.in, e, err)
+		}
+	}
+	if _, err := ParseConditionExpr("countrycontainsus"); err == nil {
+		t.Error("a word operator without spaces must not parse")
+	}
 }
 
 func TestTypedCondition(t *testing.T) {
