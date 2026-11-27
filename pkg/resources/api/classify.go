@@ -258,6 +258,15 @@ var destructivePatterns = []destructivePattern{
 		why: "deleting a release stage revokes its SDK keys and drops its targeting, so it " +
 			"requires the same dangerously-unrestricted context as 'dtctl delete fm release-stage'",
 	},
+	{
+		// DELETE .../release-stages/<key>/sdk-keys/<key> — behind `dtctl delete
+		// fm sdk-key`: every application using the key stops receiving flags.
+		methods: []string{"DELETE"},
+		path:    regexp.MustCompile(`^/platform/feature-management/v[0-9.]+/projects/[^/]+/release-stages/[^/]+/sdk-keys/[^/]+$`),
+		op:      safety.OperationDeleteBucket,
+		why: "revoking an SDK key cuts off every application using it, so it " +
+			"requires the same dangerously-unrestricted context as 'dtctl delete fm sdk-key'",
+	},
 }
 
 // escalateDestructive raises the gate for a curated set of irreversible

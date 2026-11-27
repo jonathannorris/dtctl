@@ -41,6 +41,7 @@ var developmentSharedWrites = map[string][]Access{
 	"fm/project":           {AccessWrite},
 	"fm/release-stage":     {AccessWrite},
 	"fm/context-attribute": {AccessWrite, AccessDelete},
+	"fm/sdk-key":           {AccessWrite},
 	"fm/feature":           {AccessWrite, AccessDelete},
 	"fm/feature-targeting": {AccessWrite, AccessDelete},
 }
@@ -52,6 +53,7 @@ var developmentSharedWrites = map[string][]Access{
 var developmentUnrestrictedAccess = map[string][]Access{
 	"fm/project":       {AccessDelete},
 	"fm/release-stage": {AccessDelete},
+	"fm/sdk-key":       {AccessDelete},
 }
 
 // developmentSharedWriteExtras are scopes a development-tier resource's
@@ -97,6 +99,11 @@ var developmentCommandScopes = map[string][]string{
 	// its usage, to refuse one a rule still references.
 	"update fm/context-attribute": {"feature-management:context-attributes:read", "feature-management:context-attributes:write"},
 	"delete fm/context-attribute": {"feature-management:context-attributes:read", "feature-management:context-attributes:delete"},
+
+	// SDK key writes resolve the stage and list its keys: a create to count
+	// the keys of its type, a delete to find the full key a masked one names.
+	"create fm/sdk-key": {"feature-management:release-stages:read", "feature-management:sdk-keys:read", "feature-management:sdk-keys:write"},
+	"delete fm/sdk-key": {"feature-management:release-stages:read", "feature-management:sdk-keys:read", "feature-management:sdk-keys:delete"},
 }
 
 var (

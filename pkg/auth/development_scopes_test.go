@@ -96,7 +96,8 @@ func TestDevelopmentCommandScopesAreRequested(t *testing.T) {
 	}
 }
 
-// Project and release stage deletes take what depends on them along, so
+// Project, release stage and SDK key deletes take what depends on them
+// along (for an SDK key, the applications using it), so
 // dtctl gates them like a bucket delete and requests their scopes only at
 // dangerously-unrestricted.
 func TestLoginScopes_ProjectDeleteOnlyWhenUnrestricted(t *testing.T) {
@@ -106,7 +107,7 @@ func TestLoginScopes_ProjectDeleteOnlyWhenUnrestricted(t *testing.T) {
 		config.SafetyLevelReadWriteAll:            false,
 		config.SafetyLevelDangerouslyUnrestricted: true,
 	} {
-		for _, scope := range []string{"feature-management:projects:delete", "feature-management:release-stages:delete"} {
+		for _, scope := range []string{"feature-management:projects:delete", "feature-management:release-stages:delete", "feature-management:sdk-keys:delete"} {
 			if got := slices.Contains(LoginScopes(level, enabled), scope); got != want {
 				t.Errorf("LoginScopes(%s) has %s = %v, want %v", level, scope, got, want)
 			}

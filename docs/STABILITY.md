@@ -210,9 +210,9 @@ deprecation cycle. Nothing stated here is relaxed by reaching 1.0.
 
 ## Summary
 
-- commands: 269 stable, 22 experimental, 53 development
+- commands: 269 stable, 22 experimental, 55 development
 - global flags (accepted on every command): 11
-- entries below (commands + flags): 1127
+- entries below (commands + flags): 1131
 
 ## Surface
 
@@ -455,6 +455,8 @@ create fm release-stage              development
   --guarded                          development
   --name                             development
   --type                             development
+create fm sdk-key                    development
+  --type                             development
 create gcp                           stable
 create gcp connection                stable
   --dry-run                          stable
@@ -576,6 +578,8 @@ delete fm feature-targeting          development
 delete fm project                    development
   --yes                              development
 delete fm release-stage              development
+  --yes                              development
+delete fm sdk-key                    development
   --yes                              development
 delete gcp                           stable
 delete gcp connection                stable
