@@ -54,7 +54,8 @@ func valueCount(op string) int {
 }
 
 // IsListOperator reports whether an operator takes a list of values, which
-// --condition-add and --condition-remove can change one value at a time.
+// --add-condition-values and --remove-condition-values can change one value
+// at a time.
 func IsListOperator(op string) bool { return valueCount(op) == -1 }
 
 // ConditionExpr is a parsed --condition expression, before its values are

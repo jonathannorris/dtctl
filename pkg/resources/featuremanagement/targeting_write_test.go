@@ -3,6 +3,7 @@ package featuremanagement
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -335,9 +336,9 @@ func TestCreateTargetingRule_ValidatesBeforeWriting(t *testing.T) {
 func TestUpdateTargetingRule_ConditionAddRemove(t *testing.T) {
 	fs, h := newFakeStage(t, twoRules)
 	res, err := h.UpdateTargetingRule("checkout", "new-checkout", "production", RuleSpec{
-		Position:        "6f1c",
-		ConditionAdd:    []string{"targetingKey = user-3,user-2"},
-		ConditionRemove: []string{"targetingKey = user-1"},
+		Position:              "6f1c",
+		AddConditionValues:    []string{"targetingKey = user-3,user-2"},
+		RemoveConditionValues: []string{"targetingKey = user-1"},
 	}, TargetingWriteOptions{Now: testNow})
 	if err != nil {
 		t.Fatal(err)
@@ -354,13 +355,102 @@ func TestUpdateTargetingRule_ConditionAddRemove(t *testing.T) {
 func TestUpdateTargetingRule_RemovingLastValueRemovesCondition(t *testing.T) {
 	fs, h := newFakeStage(t, twoRules)
 	if _, err := h.UpdateTargetingRule("checkout", "new-checkout", "production", RuleSpec{
-		Position:        "0",
-		ConditionRemove: []string{"targetingKey = user-1,user-2"},
+		Position:              "0",
+		RemoveConditionValues: []string{"targetingKey = user-1,user-2"},
 	}, TargetingWriteOptions{Now: testNow}); err != nil {
 		t.Fatal(err)
 	}
 	if conds := rulesOf(t, fs.puts[0])[0]["conditions"]; conds != nil {
 		t.Errorf("conditions = %v, want none", conds)
+	}
+}
+
+// Conditions are rows: a key can appear in several, --add-condition always
+// appends, and --remove-condition narrows by key, operator and values.
+func TestUpdateTargetingRule_ConditionRows(t *testing.T) {
+	conds := func(t *testing.T, fs *fakeStage) []string {
+		t.Helper()
+		var out []string
+		list, _ := rulesOf(t, fs.puts[len(fs.puts)-1])[0]["conditions"].([]any)
+		for _, c := range list {
+			m := c.(map[string]any)
+			out = append(out, fmt.Sprintf("%s %s %v", m["contextKey"], m["operator"], m["values"]))
+		}
+		return out
+	}
+	// Rule 0 of twoRules plus a second targetingKey row, as in the UI.
+	withNot := strings.Replace(twoRules, `"values":["user-1","user-2"]}]`,
+		`"values":["user-1","user-2"]},{"valueType":"STRING","contextKey":"targetingKey","operator":"IS_NOT","values":["user-3"]}]`, 1)
+	update := func(t *testing.T, spec RuleSpec) (*fakeStage, error) {
+		t.Helper()
+		fs, h := newFakeStage(t, withNot)
+		spec.Position = "0"
+		_, err := h.UpdateTargetingRule("checkout", "new-checkout", "production", spec, TargetingWriteOptions{Now: testNow})
+		return fs, err
+	}
+
+	// Another condition on a key the rule already uses is added, not swapped in.
+	fs, err := update(t, RuleSpec{AddConditions: []string{"targetingKey!=user-4"}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := conds(t, fs); len(got) != 3 || got[2] != "targetingKey IS_NOT [user-4]" {
+		t.Errorf("after --add-condition: %q", got)
+	}
+	// Remove runs before add, so one write replaces a condition.
+	fs, err = update(t, RuleSpec{RemoveConditions: []string{"targetingKey !="}, AddConditions: []string{"targetingKey != user-5"}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := conds(t, fs); len(got) != 2 || got[1] != "targetingKey IS_NOT [user-5]" {
+		t.Errorf("after replace: %q", got)
+	}
+
+	for _, tt := range []struct {
+		name   string
+		remove string
+		want   int
+	}{
+		{"by key", "targetingKey", 0},
+		{"by key and operator", "targetingKey !=", 1},
+		{"exact, values in any order", "targetingKey = user-2,user-1", 1},
+	} {
+		fs, err := update(t, RuleSpec{RemoveConditions: []string{tt.remove}})
+		if err != nil {
+			t.Fatalf("%s: %v", tt.name, err)
+		}
+		if got := conds(t, fs); len(got) != tt.want {
+			t.Errorf("%s: conditions = %q", tt.name, got)
+		}
+	}
+
+	// --condition replaces the whole list, and stands alone.
+	fs, err = update(t, RuleSpec{Conditions: []string{"account.id = acct-1"}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := conds(t, fs); len(got) != 1 || got[0] != "account.id IS [acct-1]" {
+		t.Errorf("after --condition: %q", got)
+	}
+	if _, err := update(t, RuleSpec{Conditions: []string{"account.id = acct-1"}, ClearConditions: true}); err == nil {
+		t.Error("--condition with --clear-conditions: expected an error")
+	}
+
+	for _, tt := range []struct {
+		spec    RuleSpec
+		wantErr string
+	}{
+		{RuleSpec{RemoveConditions: []string{"country"}}, "no condition on the rule matches"},
+		{RuleSpec{AddConditionValues: []string{"account.id = acct-9"}}, "--add-condition adds one"},
+		{RuleSpec{AddConditions: []string{"targetingKey != user-9"}, AddConditionValues: []string{"targetingKey != user-4"}}, "has 2 'targetingKey !=' conditions"},
+	} {
+		if _, err := update(t, tt.spec); err == nil || !strings.Contains(err.Error(), tt.wantErr) {
+			t.Errorf("%+v: err = %v, want %q", tt.spec, err, tt.wantErr)
+		}
+	}
+
+	if fs, err := update(t, RuleSpec{ClearConditions: true}); err != nil || len(conds(t, fs)) != 0 {
+		t.Errorf("--clear-conditions: %v, %v", err, conds(t, fs))
 	}
 }
 

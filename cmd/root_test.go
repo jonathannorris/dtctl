@@ -619,6 +619,12 @@ func TestVerbSynonyms(t *testing.T) {
 func TestAdviseFlag(t *testing.T) {
 	queryLike := &cobra.Command{Use: "query"}
 	getLike := &cobra.Command{Use: "get"}
+	root, update, fm := &cobra.Command{Use: "dtctl"}, &cobra.Command{Use: "update"}, &cobra.Command{Use: "fm"}
+	updateTargeting, createTargeting := &cobra.Command{Use: "feature-targeting"}, &cobra.Command{Use: "feature-targeting"}
+	root.AddCommand(update)
+	update.AddCommand(fm)
+	fm.AddCommand(updateTargeting)
+	(&cobra.Command{Use: "create"}).AddCommand(createTargeting)
 	cases := []struct {
 		cmd         *cobra.Command
 		flag        string
@@ -631,6 +637,9 @@ func TestAdviseFlag(t *testing.T) {
 		{queryLike, "query", false, "positional argument", ""},
 		{getLike, "limit", true, "", ""},
 		{queryLike, "outpt", true, "", ""},
+		{updateTargeting, "condition", false, "use --add-condition", ""},
+		{updateTargeting, "condition-add", false, "--add-condition-values", ""},
+		{createTargeting, "condition", true, "", ""},
 	}
 	for _, tc := range cases {
 		fe := adviseFlag(tc.cmd, tc.flag)

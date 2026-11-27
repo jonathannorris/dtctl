@@ -262,10 +262,11 @@ Examples:
 
 func newUpdateFMFeatureTargetingCmd() *cobra.Command {
 	var (
-		stage, position, movePosition, version   string
-		conditionAdd, conditionRemove, condClear []string
-		clearRollout                             bool
-		rule                                     fmRuleFlags
+		stage, position, movePosition, version string
+		addConditions, removeConditions        []string
+		addValues, removeValues                []string
+		clearConditions, clearRollout          bool
+		rule                                   fmRuleFlags
 	)
 	c := &cobra.Command{
 		Use:     "feature-targeting <feature-key-or-name> --position <position-or-id> --stage <stage>",
@@ -286,17 +287,31 @@ safe to repeat.
 
 ` + fmConditionHelp + `
 
---condition replaces the rule's condition on the same context key, or adds
-one. --condition-add and --condition-remove add or remove values in the
-condition with that key and operator without retyping the list (any operator
-that takes a list, not between): values already there, or not there, are
-skipped, and removing the last value removes the condition.
---condition-clear <key> drops the conditions on a context key.
+A rule's conditions are rows, as in the UI's Edit Conditions dialog, and a
+context key can appear in several (targetingKey = a,b and targetingKey != c):
+
+  --add-condition            add a row
+  --remove-condition         remove rows: every one on a key ('country'), with a
+                             key and operator ('targetingKey !='), or exactly
+                             one ('targetingKey != user-3')
+  --clear-conditions         remove every row, so the rule matches all requests
+  --add-condition-values     add values to the row with that key and operator
+  --remove-condition-values  remove values from it; the last value removes the row
+
+To replace every condition, combine --clear-conditions with --add-condition.
+
+The value flags work on operators that take a list (not between), skip values
+already there (or not there), and refuse when the rule has no row with that
+key and operator, or two.
 
 Examples:
   # Add a user to a list and remove another
   dtctl update fm feature-targeting new-checkout --position 0 --stage production \
-    --condition-add 'targetingKey = user-3' --condition-remove 'targetingKey = user-1'
+    --add-condition-values 'targetingKey = user-3' --remove-condition-values 'targetingKey = user-1'
+
+  # Add a condition, and drop the ones on country
+  dtctl update fm feature-targeting new-checkout --position 0 --stage production \
+    --add-condition 'app.version >= 2.3.0' --remove-condition country
 
   # Change the rollout: 25% now, 100% tomorrow, rising linearly
   dtctl update fm feature-targeting new-checkout --position a93d07e1 --stage production \
@@ -323,12 +338,14 @@ Examples:
 			spec := rule.spec(cmd)
 			spec.Position = position
 			spec.MovePosition = movePosition
-			spec.ConditionAdd = conditionAdd
-			spec.ConditionRemove = conditionRemove
-			spec.ConditionClear = condClear
+			spec.AddConditions = addConditions
+			spec.RemoveConditions = removeConditions
+			spec.ClearConditions = clearConditions
+			spec.AddConditionValues = addValues
+			spec.RemoveConditionValues = removeValues
 			spec.ClearRollout = clearRollout
 			if !fmRuleSpecChanges(cmd) {
-				return fmt.Errorf("nothing to update: pass at least one of --condition, --condition-add, --condition-remove, --condition-clear, --variant, --rollout, --clear-rollout, --bucketing-key, --move-position or --name")
+				return fmt.Errorf("nothing to update: pass at least one of --add-condition, --remove-condition, --clear-conditions, --add-condition-values, --remove-condition-values, --variant, --rollout, --clear-rollout, --bucketing-key, --move-position or --name")
 			}
 			_, project, h, printer, err := setupFMWrite(cmd, safety.OperationUpdate)
 			if err != nil {
@@ -350,10 +367,11 @@ Examples:
 	c.Flags().SortFlags = false
 	c.Flags().StringVarP(&stage, fmStageFlag, "s", "", fmTargetingStageHelp)
 	c.Flags().StringVar(&position, "position", "", "rule to change, by 0-based position or id (required)")
-	c.Flags().StringArrayVar(&rule.conditions, "condition", nil, "add a condition, or replace the one on the same context key (repeatable)")
-	c.Flags().StringArrayVar(&conditionAdd, "condition-add", nil, "add values to the condition with this key and operator; creates it if needed (repeatable)")
-	c.Flags().StringArrayVar(&conditionRemove, "condition-remove", nil, "remove values from the condition with this key and operator; the last value removes the condition (repeatable)")
-	c.Flags().StringArrayVar(&condClear, "condition-clear", nil, "remove the conditions on this context key (repeatable)")
+	c.Flags().StringArrayVar(&addConditions, "add-condition", nil, "add a condition as '<context-key> <operator> <values>' (repeatable)")
+	c.Flags().StringArrayVar(&removeConditions, "remove-condition", nil, "remove conditions: '<key>', '<key> <operator>' or '<key> <operator> <values>' (repeatable)")
+	c.Flags().BoolVar(&clearConditions, "clear-conditions", false, "remove every condition, so the rule matches all requests")
+	c.Flags().StringArrayVar(&addValues, "add-condition-values", nil, "add values to the condition with this key and operator, as '<key> <operator> <values>' (repeatable)")
+	c.Flags().StringArrayVar(&removeValues, "remove-condition-values", nil, "remove values from the condition with this key and operator; the last value removes it (repeatable)")
 	c.Flags().StringVar(&rule.variant, "variant", "", "new variant to serve, or a split")
 	c.Flags().StringArrayVar(&rule.rollout, "rollout", nil, "replace the rollout steps, each <time>=<percent>[,linear] (repeatable)")
 	c.Flags().BoolVar(&clearRollout, "clear-rollout", false, "remove the rollout, so the rule serves 100% of matches")
@@ -366,7 +384,7 @@ Examples:
 
 // fmRuleSpecChanges reports whether an update was given anything to change.
 func fmRuleSpecChanges(cmd *cobra.Command) bool {
-	for _, name := range []string{"condition", "condition-add", "condition-remove", "condition-clear", "variant", "rollout", "clear-rollout", "bucketing-key", "move-position", "name"} {
+	for _, name := range []string{"add-condition", "remove-condition", "clear-conditions", "add-condition-values", "remove-condition-values", "variant", "rollout", "clear-rollout", "bucketing-key", "move-position", "name"} {
 		if cmd.Flags().Changed(name) {
 			return true
 		}

@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"strconv"
+	"strings"
 	"time"
 
 	sdkfm "github.com/Dynatrace/dtctl/sdk/api/featuremanagement"
@@ -37,10 +38,14 @@ type RuleSpec struct {
 	// MovePosition moves the rule on update.
 	MovePosition string
 
-	Conditions      []string // --condition: add, or replace the condition on the same key
-	ConditionAdd    []string // --condition-add
-	ConditionRemove []string // --condition-remove
-	ConditionClear  []string // --condition-clear: context keys
+	// A rule's conditions are rows, as in the UI: a key can appear in
+	// several (targetingKey = a,b and targetingKey != c).
+	Conditions            []string // --condition: the rule's whole condition list
+	AddConditions         []string // --add-condition: append a row
+	RemoveConditions      []string // --remove-condition: '<key>', '<key> <op>' or '<key> <op> <values>'
+	ClearConditions       bool     // --clear-conditions
+	AddConditionValues    []string // --add-condition-values: '<key> <op> <values>'
+	RemoveConditionValues []string // --remove-condition-values
 
 	Variant      *string
 	Rollout      []string
@@ -52,7 +57,8 @@ type RuleSpec struct {
 // needsKeyTypes reports whether the spec names context keys, whose value
 // types (and existence) come from the project's context attributes.
 func (s RuleSpec) needsKeyTypes() bool {
-	return len(s.Conditions)+len(s.ConditionAdd)+len(s.ConditionRemove) > 0 || (s.BucketingKey != nil && *s.BucketingKey != "")
+	return len(s.Conditions)+len(s.AddConditions)+len(s.RemoveConditions)+len(s.AddConditionValues)+len(s.RemoveConditionValues) > 0 ||
+		(s.BucketingKey != nil && *s.BucketingKey != "")
 }
 
 // TargetingWriteResult is the outcome of a targeting write.
@@ -277,29 +283,34 @@ func (h *Handler) writeTargeting(projectKey, featureKeyOrName, stage string, opt
 // apply changes one rule as spec says, in a fixed order: conditions cleared,
 // set, extended and reduced, then variant, rollout, bucketing key and name.
 func (env *ruleEnv) apply(rule *TargetingRule, spec RuleSpec) error {
-	for _, key := range spec.ConditionClear {
-		rule.Conditions = withoutKey(rule.Conditions, key)
+	if len(spec.Conditions) > 0 && (spec.ClearConditions || len(spec.AddConditions)+len(spec.RemoveConditions)+
+		len(spec.AddConditionValues)+len(spec.RemoveConditionValues) > 0) {
+		return fmt.Errorf("--condition sets the rule's whole condition list, so it cannot be combined with the other condition flags")
 	}
-	set := map[string]bool{}
-	for _, s := range spec.Conditions {
+	if spec.ClearConditions {
+		rule.Conditions = nil
+	}
+	for _, s := range spec.RemoveConditions {
+		if err := env.removeConditions(rule, s); err != nil {
+			return err
+		}
+	}
+	if len(spec.Conditions) > 0 {
+		rule.Conditions = nil
+	}
+	for _, s := range append(append([]string{}, spec.Conditions...), spec.AddConditions...) {
 		c, err := env.condition(s)
 		if err != nil {
 			return err
 		}
-		if !set[c.ContextKey] {
-			// The first --condition on a key replaces what the rule had on
-			// it; further ones on the same key add to it.
-			rule.Conditions = withoutKey(rule.Conditions, c.ContextKey)
-			set[c.ContextKey] = true
-		}
 		rule.Conditions = append(rule.Conditions, c)
 	}
-	for _, s := range spec.ConditionAdd {
+	for _, s := range spec.AddConditionValues {
 		if err := env.changeValues(rule, s, true); err != nil {
 			return err
 		}
 	}
-	for _, s := range spec.ConditionRemove {
+	for _, s := range spec.RemoveConditionValues {
 		if err := env.changeValues(rule, s, false); err != nil {
 			return err
 		}
@@ -349,39 +360,41 @@ func (env *ruleEnv) condition(s string) (TargetingCondition, error) {
 	return env.keyTypes.TypedCondition(env.projectKey, e, env.now)
 }
 
-// changeValues adds or removes values in the rule's condition with the same
-// context key and operator. Adding creates the condition when there is none;
-// removing the last value removes it. Values already there (or not there)
-// are skipped.
+// changeValues adds or removes values in the rule's one condition with that
+// context key and operator; removing the last value removes the condition.
+// Values already there (or not there) are skipped. No such condition, or
+// two of them, is an error: --add-condition adds a row, and a rule with two
+// alike rows has to be told which one.
 func (env *ruleEnv) changeValues(rule *TargetingRule, s string, add bool) error {
-	flag := "--condition-remove"
+	flag := "--remove-condition-values"
 	if add {
-		flag = "--condition-add"
+		flag = "--add-condition-values"
 	}
 	e, err := ParseConditionExpr(s)
 	if err != nil {
 		return fmt.Errorf("%s: %w", flag, err)
 	}
 	if !IsListOperator(e.Operator) {
-		return fmt.Errorf("%s %q: %s does not take a list of values; use --condition to replace the condition", flag, s, e.Operator)
+		return fmt.Errorf("%s %q: %s does not take a list of values; use --remove-condition and --add-condition to replace the condition", flag, s, e.Operator)
 	}
 	c, err := env.keyTypes.TypedCondition(env.projectKey, e, env.now)
 	if err != nil {
 		return err
 	}
-	idx := -1
+	var found []int
 	for i, existing := range rule.Conditions {
 		if existing.ContextKey == c.ContextKey && existing.Operator == c.Operator {
-			idx = i
-			break
+			found = append(found, i)
 		}
 	}
-	if idx < 0 {
-		if add {
-			rule.Conditions = append(rule.Conditions, c)
-		}
-		return nil
+	switch len(found) {
+	case 0:
+		return fmt.Errorf("%s %q: the rule has no '%s %s' condition; --add-condition adds one", flag, s, e.ContextKey, e.Operator)
+	case 1:
+	default:
+		return fmt.Errorf("%s %q: the rule has %d '%s %s' conditions; use --remove-condition and --add-condition to change one", flag, s, len(found), e.ContextKey, e.Operator)
 	}
+	idx := found[0]
 	existing := &rule.Conditions[idx]
 	have := map[string]bool{}
 	for _, v := range existing.Values {
@@ -414,14 +427,80 @@ func (env *ruleEnv) changeValues(rule *TargetingRule, s string, add bool) error 
 	return nil
 }
 
-func withoutKey(cs []TargetingCondition, key string) []TargetingCondition {
-	out := cs[:0:0]
-	for _, c := range cs {
-		if c.ContextKey != key {
-			out = append(out, c)
+// removeConditions removes the rows a --remove-condition selector names:
+// every condition on a key ('country'), those with a key and operator
+// ('targetingKey !='), or one with exactly these values
+// ('targetingKey != user-3'). A selector that matches nothing is an error,
+// since it is most likely a typo.
+func (env *ruleEnv) removeConditions(rule *TargetingRule, s string) error {
+	key, op, values, err := parseConditionSelector(s)
+	if err != nil {
+		return fmt.Errorf("--remove-condition: %w", err)
+	}
+	var want *TargetingCondition
+	if values != "" {
+		c, err := env.condition(key + " " + op + " " + values)
+		if err != nil {
+			return fmt.Errorf("--remove-condition: %w", err)
+		}
+		want = &c
+	}
+	kept := rule.Conditions[:0:0]
+	for _, c := range rule.Conditions {
+		match := c.ContextKey == key && (op == "" || c.Operator == conditionOperators[op])
+		if match && want != nil {
+			match = sameConditionValues(c, *want)
+		}
+		if !match {
+			kept = append(kept, c)
 		}
 	}
-	return out
+	if len(kept) == len(rule.Conditions) {
+		return fmt.Errorf("--remove-condition %q: no condition on the rule matches", s)
+	}
+	rule.Conditions = kept
+	return nil
+}
+
+// parseConditionSelector splits '<key>', '<key> <op>' or
+// '<key> <op> <values>', with or without spaces around a symbolic operator.
+func parseConditionSelector(s string) (key, op, values string, err error) {
+	fields := strings.Fields(s)
+	if len(fields) == 0 {
+		return "", "", "", fmt.Errorf("empty selector: want '<context-key>', '<context-key> <operator>' or '<context-key> <operator> <values>'")
+	}
+	if m := compactCondition.FindStringSubmatch(s); m != nil && (len(fields) < 2 || conditionOperators[fields[1]] == "") {
+		key, op, values = m[1], m[2], strings.TrimSpace(m[3])
+	} else {
+		key = fields[0]
+		if len(fields) > 1 {
+			op, values = fields[1], strings.TrimSpace(strings.Join(fields[2:], " "))
+		}
+	}
+	if op != "" && conditionOperators[op] == "" {
+		return "", "", "", fmt.Errorf("%q: unknown operator %q (one of %s)", s, op, strings.Join(sortedOperators(), " "))
+	}
+	return key, op, values, nil
+}
+
+// sameConditionValues reports whether two conditions hold the same values,
+// in any order.
+func sameConditionValues(a, b TargetingCondition) bool {
+	if len(a.Values) != len(b.Values) {
+		return false
+	}
+	have := map[string]int{}
+	for _, v := range a.Values {
+		have[conditionValueKey(a.ValueType, v)]++
+	}
+	for _, v := range b.Values {
+		k := conditionValueKey(b.ValueType, v)
+		if have[k] == 0 {
+			return false
+		}
+		have[k]--
+	}
+	return true
 }
 
 // copyTargeting deep-copies a stage's targeting through its JSON encoding,

@@ -212,7 +212,7 @@ deprecation cycle. Nothing stated here is relaxed by reaching 1.0.
 
 - commands: 269 stable, 22 experimental, 60 development
 - global flags (accepted on every command): 11
-- entries below (commands + flags): 1154
+- entries below (commands + flags): 1155
 
 ## Surface
 
@@ -1274,15 +1274,16 @@ update fm feature                    development
   --variant-value                    development
   --version                          development
 update fm feature-targeting          development
+  --add-condition                    development
+  --add-condition-values             development
   --bucketing-key                    development
+  --clear-conditions                 development
   --clear-rollout                    development
-  --condition                        development
-  --condition-add                    development
-  --condition-clear                  development
-  --condition-remove                 development
   --move-position                    development
   --name                             development
   --position                         development
+  --remove-condition                 development
+  --remove-condition-values          development
   --rollout                          development
   --stage                            development
   --variant                          development

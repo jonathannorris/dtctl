@@ -427,6 +427,12 @@ func adviseFlag(cmd *cobra.Command, flag string) *suggest.FlagError {
 			Message: "unknown flag --query — pass the DQL text as the positional argument: dtctl query 'fetch ...'"}
 	case flag == "dry-run":
 		return &suggest.FlagError{Flag: flag, Message: dryRunUnavailableMessage(cmd)}
+	case cmd.CommandPath() == cmd.Root().Name()+" update fm feature-targeting":
+		// Conditions are rows on update: --condition (the whole list) is
+		// create's, and the older value flags were renamed.
+		if hint, ok := fmUpdateConditionFlags[flag]; ok {
+			return &suggest.FlagError{Flag: flag, Message: "unknown flag --" + flag + " on update: " + hint}
+		}
 	}
 	return nil
 }
@@ -2271,4 +2277,13 @@ func aliasConfig(ctx context.Context) (*config.Config, error) {
 		return nil, errNoAliasesForSession
 	}
 	return loadHostConfig()
+}
+
+// fmUpdateConditionFlags points condition flags that update fm
+// feature-targeting does not take at the ones that do.
+var fmUpdateConditionFlags = map[string]string{
+	"condition":        "use --add-condition to add one, --remove-condition or --clear-conditions to drop them",
+	"condition-add":    "use --add-condition-values to add values to a condition, or --add-condition for a new one",
+	"condition-remove": "use --remove-condition-values to remove values from a condition",
+	"condition-clear":  "use --remove-condition <key> for one key, or --clear-conditions for all",
 }
