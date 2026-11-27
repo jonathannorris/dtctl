@@ -255,7 +255,11 @@ var ResourceScopes = map[string]AccessScopes{
 		Write:  []string{"feature-management:projects:write"},
 		Delete: []string{"feature-management:projects:delete"},
 	},
-	"fm/release-stage": {Read: []string{"feature-management:release-stages:read"}},
+	"fm/release-stage": {
+		Read:   []string{"feature-management:release-stages:read"},
+		Write:  []string{"feature-management:release-stages:write"},
+		Delete: []string{"feature-management:release-stages:delete"},
+	},
 	"fm/feature": {
 		Read:   []string{"feature-management:features:read"},
 		Write:  []string{"feature-management:features:write"},

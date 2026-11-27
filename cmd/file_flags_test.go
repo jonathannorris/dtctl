@@ -45,8 +45,9 @@ var fileFlagUnreached = map[string]string{
 	"apply --write-id": "it writes only after a successful apply, which needs a server",
 	// Development-tier commands are not in the tree the probe walks; their
 	// file flags are declared with markFileFlag all the same.
-	"featuremanagement_feature_write.go:newCreateFMFeatureCmd": "a development-tier command, not registered in the probed tree",
-	"featuremanagement_project_write.go:newCreateFMProjectCmd": "a development-tier command, not registered in the probed tree",
+	"featuremanagement_feature_write.go:newCreateFMFeatureCmd":            "a development-tier command, not registered in the probed tree",
+	"featuremanagement_project_write.go:newCreateFMProjectCmd":            "a development-tier command, not registered in the probed tree",
+	"featuremanagement_release_stage_write.go:newCreateFMReleaseStageCmd": "a development-tier command, not registered in the probed tree",
 }
 
 // TestFileFlagsAreDeclared holds that every flag naming a file a command reads

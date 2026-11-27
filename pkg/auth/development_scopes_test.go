@@ -96,8 +96,9 @@ func TestDevelopmentCommandScopesAreRequested(t *testing.T) {
 	}
 }
 
-// A project delete takes everything in the project along, so dtctl gates it
-// like a bucket delete and requests its scope only at dangerously-unrestricted.
+// Project and release stage deletes take what depends on them along, so
+// dtctl gates them like a bucket delete and requests their scopes only at
+// dangerously-unrestricted.
 func TestLoginScopes_ProjectDeleteOnlyWhenUnrestricted(t *testing.T) {
 	enabled := map[string]bool{"feature-management": true}
 	for level, want := range map[config.SafetyLevel]bool{
@@ -105,8 +106,10 @@ func TestLoginScopes_ProjectDeleteOnlyWhenUnrestricted(t *testing.T) {
 		config.SafetyLevelReadWriteAll:            false,
 		config.SafetyLevelDangerouslyUnrestricted: true,
 	} {
-		if got := slices.Contains(LoginScopes(level, enabled), "feature-management:projects:delete"); got != want {
-			t.Errorf("LoginScopes(%s) has projects:delete = %v, want %v", level, got, want)
+		for _, scope := range []string{"feature-management:projects:delete", "feature-management:release-stages:delete"} {
+			if got := slices.Contains(LoginScopes(level, enabled), scope); got != want {
+				t.Errorf("LoginScopes(%s) has %s = %v, want %v", level, scope, got, want)
+			}
 		}
 	}
 	if !slices.Contains(LoginScopes(config.SafetyLevelReadWriteAll, enabled), "feature-management:projects:write") {

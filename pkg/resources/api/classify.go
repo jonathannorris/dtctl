@@ -248,6 +248,16 @@ var destructivePatterns = []destructivePattern{
 		why: "deleting a Feature Management project deletes everything in it, so it " +
 			"requires the same dangerously-unrestricted context as 'dtctl delete fm project'",
 	},
+	{
+		// DELETE .../projects/<key>/release-stages/<key> — behind `dtctl delete
+		// fm release-stage`, which revokes the stage's SDK keys and drops every
+		// feature's targeting in it.
+		methods: []string{"DELETE"},
+		path:    regexp.MustCompile(`^/platform/feature-management/v[0-9.]+/projects/[^/]+/release-stages/[^/]+$`),
+		op:      safety.OperationDeleteBucket,
+		why: "deleting a release stage revokes its SDK keys and drops its targeting, so it " +
+			"requires the same dangerously-unrestricted context as 'dtctl delete fm release-stage'",
+	},
 }
 
 // escalateDestructive raises the gate for a curated set of irreversible

@@ -301,6 +301,7 @@ func TestClassify_FMDeletesEscalate(t *testing.T) {
 		want         safety.Operation
 	}{
 		{"DELETE", "/platform/feature-management/v0.1/projects/checkout", safety.OperationDeleteBucket},
+		{"DELETE", "/platform/feature-management/v0.1/projects/checkout/release-stages/production", safety.OperationDeleteBucket},
 		{"DELETE", "/platform/feature-management/v0.1/projects/checkout/features/new-checkout", safety.OperationDelete},
 	}
 	for _, tc := range cases {

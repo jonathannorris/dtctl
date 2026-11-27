@@ -39,6 +39,7 @@ func DevelopmentResourceFeatures() map[string]string {
 // scopes are not requested there.
 var developmentSharedWrites = map[string][]Access{
 	"fm/project":           {AccessWrite},
+	"fm/release-stage":     {AccessWrite},
 	"fm/feature":           {AccessWrite, AccessDelete},
 	"fm/feature-targeting": {AccessWrite, AccessDelete},
 }
@@ -48,7 +49,8 @@ var developmentSharedWrites = map[string][]Access{
 // bucket delete (OperationDeleteBucket), because they take every resource
 // that depends on them along.
 var developmentUnrestrictedAccess = map[string][]Access{
-	"fm/project": {AccessDelete},
+	"fm/project":       {AccessDelete},
+	"fm/release-stage": {AccessDelete},
 }
 
 // developmentSharedWriteExtras are scopes a development-tier resource's
@@ -84,6 +86,11 @@ var developmentCommandScopes = map[string][]string{
 	// Project updates and deletes read the project first.
 	"update fm/project": {"feature-management:projects:read", "feature-management:projects:write"},
 	"delete fm/project": {"feature-management:projects:read", "feature-management:projects:delete"},
+
+	// Release stage updates and deletes read the stage first; a reorder
+	// lists them all.
+	"update fm/release-stage": {"feature-management:release-stages:read", "feature-management:release-stages:write"},
+	"delete fm/release-stage": {"feature-management:release-stages:read", "feature-management:release-stages:delete"},
 }
 
 var (
