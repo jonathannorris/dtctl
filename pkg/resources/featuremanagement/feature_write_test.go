@@ -67,12 +67,6 @@ func TestParseFlagValueAndDefaults(t *testing.T) {
 	if _, err := ParseFlagValue("NUMBER", "x"); err == nil {
 		t.Error("NUMBER x: expected an error")
 	}
-	zero, one := 0, 1
-	vs := []Variant{{Key: "on", DisplayOrder: &one}, {Key: "off", DisplayOrder: &zero}}
-	got, _ := json.Marshal(DefaultFlagValues("STRING", vs))
-	if string(got) != `{"off":"Disabled","on":"Enabled"}` {
-		t.Errorf("defaults = %s", got)
-	}
 }
 
 func TestFeatureFile_Decode(t *testing.T) {
@@ -189,6 +183,7 @@ func TestChangeFeatureVariantsAndFlags_Validation(t *testing.T) {
 		{AddVariant: "express"},                                          // no value for layout
 		{AddVariant: "on", Values: []string{"layout=x"}},                 // exists
 		{AddFlag: "layout"},                                              // exists
+		{AddFlag: "n", FlagType: "NUMBER"},                               // no values: update has no defaults
 		{RemoveFlag: "nope"},                                             // missing
 		{AddFlag: "n", FlagType: "NUMBER", FlagValues: []string{"on=1"}}, // partial
 	} {
@@ -203,7 +198,7 @@ func TestChangeFeatureVariantsAndFlags_Validation(t *testing.T) {
 
 func TestChangeFeatureVariantsAndFlags_RemoveVariantWarnsAboutTargeting(t *testing.T) {
 	ff, h := newFakeFeature(t)
-	res, err := h.ChangeFeatureVariantsAndFlags("checkout", "new-checkout", VariantFlagChange{RemoveVariant: "on", AddFlag: "beta"}, WriteOptions{})
+	res, err := h.ChangeFeatureVariantsAndFlags("checkout", "new-checkout", VariantFlagChange{RemoveVariant: "on", AddFlag: "beta", FlagValues: []string{"off=true"}}, WriteOptions{})
 	if err != nil {
 		t.Fatal(err)
 	}

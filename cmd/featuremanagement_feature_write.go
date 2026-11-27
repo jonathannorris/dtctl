@@ -42,7 +42,7 @@ From flags, the feature gets the variants --variants names (default
 disabled,enabled), each named after its key, and one flag: a BOOLEAN keyed
 like the feature unless --flag-key and --flag-type say otherwise. Give the
 flag a value for every variant with --flag-value <variant>=<value>, or none
-for the type's defaults: the last variant gets true, "Enabled", 100 or
+for the service's defaults: the last variant gets true, "Enabled", 100 or
 {"enabled": true}, every other variant the "off" value.
 
 -f reads the API's FeatureCreate fields from YAML or JSON, so a feature
@@ -185,9 +185,9 @@ it read; a change that leaves the feature as it was sends nothing.
 --variant-value <flag-key>=<value> per flag, parsed by the flag's type. Adding a
 variant serves it to nobody until a targeting rule does.
 
---add-flag takes --flag-value <variant>=<value> for every variant, or none
-for the type's defaults (the last variant on, the rest off). A flag with a
-schema needs 'dtctl create fm feature -f' or apply.
+--add-flag needs --flag-value <variant>=<value> for every variant: the
+service fills in default values only when a feature is created. A flag with
+a schema needs 'dtctl create fm feature -f' or apply.
 
 --remove-variant is refused while an enabled stage serves the variant.
 Stages whose rules still name it are listed as a warning afterwards.
@@ -305,7 +305,7 @@ Examples:
 	c.Flags().StringVar(&flagType, "flag-type", "", "type for --add-flag: BOOLEAN|STRING|NUMBER|JSON (default BOOLEAN)")
 	c.Flags().StringVar(&flagName, "flag-name", "", "display name for --add-flag (default: the key)")
 	c.Flags().StringVar(&flagDescription, "flag-description", "", "description for --add-flag")
-	c.Flags().StringArrayVar(&flagValues, "flag-value", nil, "the new flag's value for one variant, as <variant>=<value> (repeatable; one per variant, or none)")
+	c.Flags().StringArrayVar(&flagValues, "flag-value", nil, "the new flag's value for one variant, as <variant>=<value> (repeatable; one per variant)")
 	c.Flags().StringVar(&removeFlag, "remove-flag", "", "remove a flag; SDKs that evaluate it get the default in their code")
 	c.Flags().StringVar(&version, "version", "", fmVersionHelp)
 	_ = c.RegisterFlagCompletionFunc("status", cobra.FixedCompletions(fmFeatureStates, cobra.ShellCompDirectiveNoFileComp))

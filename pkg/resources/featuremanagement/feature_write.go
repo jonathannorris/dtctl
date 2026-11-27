@@ -171,42 +171,6 @@ func ParseFlagValues(t FlagType, pairs []string, variants []Variant) (map[string
 	return values, nil
 }
 
-// DefaultFlagValues are the values the service gives a new flag on create:
-// the variant shown last gets the type's "on" value, every other variant its
-// "off" value. The update endpoint fills nothing, so dtctl fills these when a
-// flag is added to an existing feature without values.
-func DefaultFlagValues(t FlagType, variants []Variant) map[string]any {
-	on, off := flagDefaults(t)
-	last := -1
-	for i, v := range variants {
-		if last < 0 || order(v) >= order(variants[last]) {
-			last = i
-		}
-	}
-	values := map[string]any{}
-	for i, v := range variants {
-		if i == last {
-			values[v.Key] = on
-		} else {
-			values[v.Key] = off
-		}
-	}
-	return values
-}
-
-func flagDefaults(t FlagType) (on, off any) {
-	switch t {
-	case sdkfm.FlagTypeString:
-		return "Enabled", "Disabled"
-	case sdkfm.FlagTypeNumber:
-		return float64(100), float64(0)
-	case sdkfm.FlagTypeJSON:
-		return map[string]any{"enabled": true}, map[string]any{"enabled": false}
-	default:
-		return true, false
-	}
-}
-
 func order(v Variant) int {
 	if v.DisplayOrder == nil {
 		return 0
@@ -421,11 +385,14 @@ func (h *Handler) ChangeFeatureVariantsAndFlags(projectKey, keyOrName string, c 
 		if t == "" {
 			t = sdkfm.FlagTypeBoolean
 		}
-		values := DefaultFlagValues(t, body.Variants)
-		if len(c.FlagValues) > 0 {
-			if values, err = ParseFlagValues(t, c.FlagValues, body.Variants); err != nil {
-				return nil, err
-			}
+		// The update endpoint needs a value for every variant: the service's
+		// defaults apply only when a feature is created.
+		if len(c.FlagValues) == 0 {
+			return nil, fmt.Errorf("--add-flag %s needs --flag-value <variant>=<value> for every variant: %s", c.AddFlag, variantKeys(body.Variants))
+		}
+		values, err := ParseFlagValues(t, c.FlagValues, body.Variants)
+		if err != nil {
+			return nil, fmt.Errorf("--add-flag %s: %w", c.AddFlag, err)
 		}
 		name := c.FlagName
 		if name == "" {
