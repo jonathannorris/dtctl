@@ -1258,7 +1258,6 @@ update fm feature                    development
   --add-flag                         development
   --add-variant                      development
   --description                      development
-  --display-order                    development
   --flag-description                 development
   --flag-name                        development
   --flag-type                        development
@@ -1270,8 +1269,9 @@ update fm feature                    development
   --remove-variant                   development
   --status                           development
   --type                             development
-  --value                            development
+  --variant-display-order            development
   --variant-name                     development
+  --variant-value                    development
   --version                          development
 update fm feature-targeting          development
   --bucketing-key                    development

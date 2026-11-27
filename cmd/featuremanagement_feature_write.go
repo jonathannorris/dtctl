@@ -182,7 +182,7 @@ flag schemas and fields this dtctl doesn't know included, with the version
 it read; a change that leaves the feature as it was sends nothing.
 
 --add-variant needs every flag's value for the new variant, one
---value <flag-key>=<value> per flag, parsed by the flag's type. Adding a
+--variant-value <flag-key>=<value> per flag, parsed by the flag's type. Adding a
 variant serves it to nobody until a targeting rule does.
 
 --add-flag takes --flag-value <variant>=<value> for every variant, or none
@@ -196,7 +196,7 @@ Examples:
   dtctl update fm feature new-checkout --status ARCHIVED
   dtctl update fm feature new-checkout --owner checkout-team --maintainers alice,bob
   dtctl update fm feature new-checkout --add-variant variation-b \
-    --value new-checkout=true --value checkout-layout=express
+    --variant-value new-checkout=true --variant-value checkout-layout=express
   dtctl update fm feature new-checkout --add-flag checkout-theme --flag-type STRING \
     --flag-value baseline=light --flag-value variation-a=dark
   dtctl update fm feature new-checkout --remove-flag checkout-theme
@@ -207,7 +207,7 @@ Examples:
 			descriptive := changedAny(cmd, "name", "description", "type", "owner", "maintainers")
 			statusChange := cmd.Flags().Changed("status")
 			structure := changedAny(cmd, "add-variant", "remove-variant", "add-flag", "remove-flag",
-				"variant-name", "display-order", "value", "flag-type", "flag-name", "flag-description", "flag-value")
+				"variant-name", "variant-display-order", "variant-value", "flag-type", "flag-name", "flag-description", "flag-value")
 			kinds := 0
 			for _, k := range []bool{descriptive, statusChange, structure} {
 				if k {
@@ -267,7 +267,7 @@ Examples:
 					AddVariant: addVariant, VariantName: variantName, Values: values, RemoveVariant: removeVariant,
 					AddFlag: addFlag, FlagName: flagName, FlagDescription: flagDescription, FlagValues: flagValues, RemoveFlag: removeFlag,
 				}
-				if cmd.Flags().Changed("display-order") {
+				if cmd.Flags().Changed("variant-display-order") {
 					change.DisplayOrder = &displayOrder
 				}
 				if flagType != "" {
@@ -298,8 +298,8 @@ Examples:
 	c.Flags().StringVar(&status, "status", "", "ACTIVE|ARCHIVED")
 	c.Flags().StringVar(&addVariant, "add-variant", "", "add a variant with this key")
 	c.Flags().StringVar(&variantName, "variant-name", "", "display name for --add-variant (default: the key)")
-	c.Flags().IntVar(&displayOrder, "display-order", 0, "display order for --add-variant (default: last)")
-	c.Flags().StringArrayVar(&values, "value", nil, "each flag's value for the new variant, as <flag-key>=<value>; one per flag (repeatable)")
+	c.Flags().IntVar(&displayOrder, "variant-display-order", 0, "display order for --add-variant (default: last)")
+	c.Flags().StringArrayVar(&values, "variant-value", nil, "each flag's value for the new variant, as <flag-key>=<value>; one per flag (repeatable)")
 	c.Flags().StringVar(&removeVariant, "remove-variant", "", "remove a variant and its value on every flag")
 	c.Flags().StringVar(&addFlag, "add-flag", "", "add a flag with this key")
 	c.Flags().StringVar(&flagType, "flag-type", "", "type for --add-flag: BOOLEAN|STRING|NUMBER|JSON (default BOOLEAN)")

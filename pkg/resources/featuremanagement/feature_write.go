@@ -392,7 +392,7 @@ func (h *Handler) ChangeFeatureVariantsAndFlags(projectKey, keyOrName string, c 
 			return nil, err
 		}
 	} else if len(c.Values) > 0 {
-		return nil, fmt.Errorf("--value needs --add-variant")
+		return nil, fmt.Errorf("--variant-value needs --add-variant")
 	}
 	if c.AddFlag != "" {
 		if flagIndex(body.Flags, c.AddFlag) >= 0 {
@@ -442,10 +442,10 @@ func addVariantValues(flags []FeatureFlag, variant string, pairs []string) error
 		k, raw, ok := strings.Cut(pair, "=")
 		k = strings.TrimSpace(k)
 		if !ok || k == "" {
-			return fmt.Errorf("invalid --value %q: want <flag-key>=<value>", pair)
+			return fmt.Errorf("invalid --variant-value %q: want <flag-key>=<value>", pair)
 		}
 		if flagIndex(flags, k) < 0 {
-			return fmt.Errorf("invalid --value %q: the feature has no flag %q", pair, k)
+			return fmt.Errorf("invalid --variant-value %q: the feature has no flag %q", pair, k)
 		}
 		given[k] = raw
 	}
@@ -458,7 +458,7 @@ func addVariantValues(flags []FeatureFlag, variant string, pairs []string) error
 		}
 		v, err := ParseFlagValue(flags[i].Type, raw)
 		if err != nil {
-			return fmt.Errorf("--value for flag %q: %w", flags[i].Key, err)
+			return fmt.Errorf("--variant-value for flag %q: %w", flags[i].Key, err)
 		}
 		vals := map[string]any{}
 		for k, existing := range flags[i].Variants {
@@ -468,7 +468,7 @@ func addVariantValues(flags []FeatureFlag, variant string, pairs []string) error
 		flags[i].Variants = vals
 	}
 	if len(missing) > 0 {
-		return fmt.Errorf("every flag needs a value for variant %q; pass --value <flag-key>=<value> for: %s", variant, strings.Join(missing, ", "))
+		return fmt.Errorf("every flag needs a value for variant %q; pass --variant-value <flag-key>=<value> for: %s", variant, strings.Join(missing, ", "))
 	}
 	return nil
 }
