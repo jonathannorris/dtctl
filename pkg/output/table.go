@@ -27,11 +27,16 @@ type tableFieldInfo struct {
 	name     string
 	indices  []int // Field path for nested/embedded fields
 	wideOnly bool
+	// literal skips status coloring: the column holds identifiers, such as
+	// variant keys, that may happen to read like a status ("enabled").
+	literal bool
 }
 
 // getTableFields extracts field information from struct tags
 // Returns fields that should be displayed based on the "table" tag
-// Tag format: `table:"HEADER"` or `table:"HEADER,wide"` or `table:"-"` (skip)
+// Tag format: `table:"HEADER"` or `table:"HEADER,wide"` or `table:"-"` (skip),
+// with an optional "literal" option (`table:"HEADER,literal"`,
+// `table:"HEADER,wide,literal"`) for a column that must not be status-colored.
 func getTableFields(t reflect.Type, wide bool) []tableFieldInfo {
 	var fields []tableFieldInfo
 	hasTableTags := false
@@ -81,6 +86,7 @@ func getTableFields(t reflect.Type, wide bool) []tableFieldInfo {
 					name:     ef.name,
 					indices:  indices,
 					wideOnly: ef.wideOnly,
+					literal:  ef.literal,
 				})
 			}
 			continue
@@ -105,10 +111,18 @@ func getTableFields(t reflect.Type, wide bool) []tableFieldInfo {
 			continue
 		}
 
-		// Parse tag: "HEADER" or "HEADER,wide"
+		// Parse tag: "HEADER" plus options "wide" and "literal"
 		parts := strings.Split(tag, ",")
 		header := parts[0]
-		wideOnly := len(parts) > 1 && parts[1] == "wide"
+		wideOnly, literal := false, false
+		for _, opt := range parts[1:] {
+			switch opt {
+			case "wide":
+				wideOnly = true
+			case "literal":
+				literal = true
+			}
+		}
 
 		// Skip wide-only fields if not in wide mode
 		if wideOnly && !wide {
@@ -119,6 +133,7 @@ func getTableFields(t reflect.Type, wide bool) []tableFieldInfo {
 			name:     header,
 			indices:  []int{i},
 			wideOnly: wideOnly,
+			literal:  literal,
 		})
 	}
 
@@ -216,14 +231,25 @@ var statusColors = map[string]string{
 	// Green: positive/success states
 	"true": BrightGreen, "active": BrightGreen, "SUCCEEDED": BrightGreen, "SUCCESS": BrightGreen,
 	"healthy": BrightGreen, "enabled": BrightGreen, "COMPLETED": BrightGreen, "deployed": BrightGreen,
+	"on": BrightGreen,
 
 	// Red: negative/failure states
 	"false": BrightRed, "FAILED": BrightRed, "ERROR": BrightRed, "disabled": BrightRed,
 	"inactive": BrightRed, "CRITICAL": BrightRed,
+	"off": BrightRed,
 
 	// Yellow: in-progress/warning states
 	"WARNING": BrightYellow, "WARN": BrightYellow, "PENDING": BrightYellow,
 	"RUNNING": BrightYellow, "IN_PROGRESS": BrightYellow, "WAITING": BrightYellow,
+}
+
+// cell formats one value for its column, status-colored unless the column is
+// literal.
+func (f tableFieldInfo) cell(value reflect.Value) string {
+	if f.literal {
+		return formatValue(value)
+	}
+	return colorizeTableValue(formatValue(value))
 }
 
 // colorizeTableValue applies semantic coloring to a table cell value.
@@ -275,7 +301,7 @@ func (p *TablePrinter) Print(obj interface{}) error {
 	for _, f := range fields {
 		headers = append(headers, f.name)
 		value := getFieldByPath(v, f.indices)
-		values = append(values, colorizeTableValue(formatValue(value)))
+		values = append(values, f.cell(value))
 	}
 
 	table.Header(toAny(formatHeaders(headers))...)
@@ -359,7 +385,7 @@ func (p *TablePrinter) PrintList(obj interface{}) error {
 		var row []string
 		for _, f := range fields {
 			value := getFieldByPath(elem, f.indices)
-			row = append(row, colorizeTableValue(formatValue(value)))
+			row = append(row, f.cell(value))
 		}
 		_ = table.Append(toAny(row)...)
 	}

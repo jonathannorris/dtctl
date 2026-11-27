@@ -83,11 +83,40 @@ func detectColor() bool {
 	return enableVTProcessing()
 }
 
+var (
+	trueColorOnce   sync.Once
+	trueColorResult bool
+)
+
+// TrueColorEnabled reports whether 24-bit color can be used: color is on and
+// the terminal says it renders RGB through COLORTERM (truecolor or 24bit), the
+// convention most terminals follow. Callers fall back to the 16 ANSI colors.
+func TrueColorEnabled() bool {
+	if !ColorEnabled() {
+		return false
+	}
+	trueColorOnce.Do(func() {
+		switch strings.ToLower(os.Getenv("COLORTERM")) {
+		case "truecolor", "24bit":
+			trueColorResult = true
+		}
+	})
+	return trueColorResult
+}
+
+// RGB is the escape code for a 24-bit foreground color, for use with
+// Colorize when TrueColorEnabled.
+func RGB(r, g, b uint8) string {
+	return fmt.Sprintf("\033[38;2;%d;%d;%dm", r, g, b)
+}
+
 // ResetColorCache resets the cached color detection result.
 // NOT safe for concurrent use — intended for testing only.
 func ResetColorCache() {
 	colorEnabledOnce = sync.Once{}
 	colorEnabledResult = false
+	trueColorOnce = sync.Once{}
+	trueColorResult = false
 	plainModeEnabled = false
 	colorPinnedOff.Store(false)
 }
