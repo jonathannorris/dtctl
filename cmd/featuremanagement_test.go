@@ -314,7 +314,7 @@ func fmTargetingForDescribe() *featuremanagement.FeatureTargeting {
 
 func TestDescribeFMFeatureTargetingTableGolden(t *testing.T) {
 	var buf bytes.Buffer
-	printFMTargetingDescribe(&buf, fmTargetingForDescribe())
+	printFMTargetingDescribe(&buf, fmTargetingForDescribe(), nil)
 	cmdtestutil.AssertGoldenStripped(t, "describe-fm-feature-targeting/table", buf.String())
 }
 
@@ -322,7 +322,7 @@ func TestDescribeFMFeatureTargetingTableGolden_NoRules(t *testing.T) {
 	var buf bytes.Buffer
 	printFMTargetingDescribe(&buf, &featuremanagement.FeatureTargeting{
 		FeatureKey: "new-checkout", ReleaseStageKey: "staging", Version: 1,
-	})
+	}, nil)
 	cmdtestutil.AssertGoldenStripped(t, "describe-fm-feature-targeting/table-no-rules", buf.String())
 }
 
@@ -336,7 +336,7 @@ func TestDescribeFMFeatureStagesGolden(t *testing.T) {
 			Conditions: []featuremanagement.TargetingCondition{{ValueType: "STRING", ContextKey: "country", Operator: "IS", Values: []any{"CA"}}},
 		}}}},
 		*fmTargetingForDescribe(),
-	})
+	}, nil)
 	cmdtestutil.AssertGoldenStripped(t, "describe-fm-feature/stages", buf.String())
 }
 
@@ -441,4 +441,26 @@ func TestGetFMOverridesTableGolden(t *testing.T) {
 		t.Fatal(err)
 	}
 	cmdtestutil.AssertGoldenStripped(t, "get-fm-overrides/feature-table", buf.String())
+}
+
+// Each variant gets its own color by display order, the first ones from
+// colors that read as neither success nor failure. (Whether the escape codes
+// are written is output.ColorEnabled's call, tested in pkg/output.)
+func TestFMVariantColors(t *testing.T) {
+	zero, one, two := 0, 1, 2
+	colors := newFMVariantColors([]featuremanagement.Variant{
+		{Key: "enabled", DisplayOrder: &two}, {Key: "disabled", DisplayOrder: &zero}, {Key: "var-a", DisplayOrder: &one},
+	})
+	if colors["disabled"] != fmVariantPalette[0] || colors["var-a"] != fmVariantPalette[1] || colors["enabled"] != fmVariantPalette[2] {
+		t.Errorf("colors = %v", colors)
+	}
+	for i, c := range fmVariantPalette {
+		if c.fallback == output.BrightGreen || c.fallback == output.BrightRed || c.fallback == output.Red ||
+			(i < len(fmVariantPalette)-1 && c.fallback == output.Green) {
+			t.Errorf("variant %d falls back to %q, which reads as a status", i, c.fallback)
+		}
+	}
+	if got := fmVariantColors(nil).paint("var-a", 7); got != "var-a  " {
+		t.Errorf("paint = %q", got)
+	}
 }

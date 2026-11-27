@@ -112,6 +112,7 @@ Examples:
 				if err != nil {
 					return err
 				}
+				newFMUserNames(c).modificationInfo(&a.ModificationInfo)
 				printFMContextAttributeDescribe(currentStdout(ctx), a, usage)
 				return nil
 			}

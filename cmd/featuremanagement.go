@@ -215,6 +215,9 @@ Examples:
 			}
 
 			if useActionDescribeTextView(cmdContext(cmd)) {
+				users := newFMUserNames(c)
+				users.modificationInfo(&p.ModificationInfo)
+				p.Owner, p.Maintainers = users.name(p.Owner), users.names(p.Maintainers)
 				printFMProjectDescribe(currentStdout(cmdContext(cmd)), p)
 				return nil
 			}

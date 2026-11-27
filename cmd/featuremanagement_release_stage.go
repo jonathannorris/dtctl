@@ -101,6 +101,7 @@ Examples:
 			}
 
 			if useActionDescribeTextView(cmdContext(cmd)) {
+				newFMUserNames(c).modificationInfo(&rs.ModificationInfo)
 				printFMReleaseStageDescribe(currentStdout(cmdContext(cmd)), project, rs)
 				return nil
 			}

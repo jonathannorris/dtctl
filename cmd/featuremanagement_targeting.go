@@ -175,7 +175,14 @@ Examples:
 			}
 
 			if useActionDescribeTextView(ctx) {
-				printFMTargetingDescribe(currentStdout(ctx), ft)
+				newFMUserNames(c).modificationInfo(&ft.ModificationInfo)
+				// The feature's variant order picks the colors, as in describe
+				// fm feature; without it (no read access) variants print plain.
+				var colors fmVariantColors
+				if f, err := featuremanagement.NewHandler(c).GetFeature(project, args[0]); err == nil {
+					colors = newFMVariantColors(f.Variants)
+				}
+				printFMTargetingDescribe(currentStdout(ctx), ft, colors)
 				for _, w := range featuremanagement.ShadowedRules(ft.Targeting.Rules) {
 					output.FprintWarning(currentStderr(ctx), "%s", w)
 				}
@@ -193,11 +200,11 @@ Examples:
 
 // printFMTargetingDescribe renders one stage's targeting: the stage, then
 // each rule as a numbered block, then the default note.
-func printFMTargetingDescribe(w io.Writer, ft *featuremanagement.FeatureTargeting) {
+func printFMTargetingDescribe(w io.Writer, ft *featuremanagement.FeatureTargeting, colors fmVariantColors) {
 	const kw = 15
 	output.FprintDescribeKV(w, "Feature:", kw, "%s", ft.FeatureKey)
 	output.FprintDescribeKV(w, "Stage:", kw, "%s", ft.ReleaseStageKey)
-	output.FprintDescribeKV(w, "Targeting:", kw, "%s", onOffString(ft.Enabled))
+	output.FprintDescribeKV(w, "Targeting:", kw, "%s", onOffColored(ft.Enabled, 0))
 	output.FprintDescribeKV(w, "Version:", kw, "%d", ft.Version)
 	printFMModificationInfo(w, kw, ft.ModificationInfo)
 
@@ -229,7 +236,7 @@ func printFMTargetingDescribe(w io.Writer, ft *featuremanagement.FeatureTargetin
 				cont(c)
 			}
 		}
-		line("Variant:", featuremanagement.FormatServe(r.Serve))
+		line("Variant:", fmFormatServe(r.Serve, colors))
 		if r.Rollout != nil && len(r.Rollout.Steps) > 0 {
 			for j, s := range r.Rollout.Steps {
 				if j == 0 {
@@ -254,11 +261,22 @@ func onOffString(b bool) string {
 	return "off"
 }
 
+// onOffColored is onOffString padded to width and colored like the TARGETING
+// column of the tables: green on, red off. Padding comes first, so the escape
+// codes don't count toward the column.
+func onOffColored(b bool, width int) string {
+	s := fmt.Sprintf("%-*s", width, onOffString(b))
+	if b {
+		return output.Colorize(output.BrightGreen, s)
+	}
+	return output.Colorize(output.BrightRed, s)
+}
+
 // printFMFeatureStages renders the per-stage summary at the end of a
 // feature's describe view: whether targeting is on, how many rules each stage
 // has, and which variants it serves, then the command that shows a stage's
 // rules in full.
-func printFMFeatureStages(w io.Writer, featureKey string, items []featuremanagement.FeatureTargeting) {
+func printFMFeatureStages(w io.Writer, featureKey string, items []featuremanagement.FeatureTargeting, colors fmVariantColors) {
 	fmt.Fprintln(w)
 	output.FprintDescribeSection(w, "Release Stages:")
 	if len(items) == 0 {
@@ -275,17 +293,34 @@ func printFMFeatureStages(w io.Writer, featureKey string, items []featuremanagem
 		if n == 1 {
 			rules = "1 rule"
 		}
-		fmt.Fprintf(w, "  %-*s  %-3s  %-7s  serves %s\n", width, ft.ReleaseStageKey, onOffString(ft.Enabled), rules, fmStageServes(ft))
+		fmt.Fprintf(w, "  %-*s  %s  %-7s  serves %s\n", width, ft.ReleaseStageKey, onOffColored(ft.Enabled, 3), rules, fmStageServes(ft, colors))
 	}
 	fmt.Fprintln(w)
 	fmt.Fprintf(w, "Rules: dtctl describe fm feature-targeting %s --stage <stage>\n", featureKey)
+}
+
+// fmFormatServe is featuremanagement.FormatServe with each variant key in its
+// color: the one variant a rule serves, or a split as key=percent pairs.
+func fmFormatServe(serve []featuremanagement.VariantDistribution, colors fmVariantColors) string {
+	if len(serve) == 0 {
+		return "-"
+	}
+	if len(serve) == 1 && serve[0].Percentage == 100 {
+		return colors.paint(serve[0].VariantKey, 0)
+	}
+	parts := make([]string, len(serve))
+	for i, d := range serve {
+		plain := featuremanagement.FormatServe([]featuremanagement.VariantDistribution{d})
+		parts[i] = colors.paint(d.VariantKey, 0) + strings.TrimPrefix(plain, d.VariantKey)
+	}
+	return strings.Join(parts, ",")
 }
 
 // fmStageServes says what a stage hands out: the code default while targeting
 // is off or has no rules, else the variants its rules serve in rule order,
 // then the code default unless a rule matches every request. A rule with a
 // rollout does not, since requests outside its percentage fall through.
-func fmStageServes(ft featuremanagement.FeatureTargeting) string {
+func fmStageServes(ft featuremanagement.FeatureTargeting, colors fmVariantColors) string {
 	const codeDefault = "the code default"
 	if !ft.Enabled || len(ft.Targeting.Rules) == 0 {
 		return codeDefault
@@ -294,15 +329,7 @@ func fmStageServes(ft featuremanagement.FeatureTargeting) string {
 	seen := map[string]bool{}
 	catchAll := false
 	for _, r := range ft.Targeting.Rules {
-		var serve []string
-		for _, d := range r.Serve {
-			if len(r.Serve) > 1 {
-				serve = append(serve, fmt.Sprintf("%s %v%%", d.VariantKey, d.Percentage))
-			} else {
-				serve = append(serve, d.VariantKey)
-			}
-		}
-		if p := strings.Join(serve, "/"); p != "" && !seen[p] {
+		if p := fmFormatServe(r.Serve, colors); len(r.Serve) > 0 && !seen[p] {
 			seen[p] = true
 			parts = append(parts, p)
 		}

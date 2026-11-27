@@ -26,7 +26,7 @@ type Feature struct {
 	Name                string           `json:"name" yaml:"name" table:"NAME"`
 	Description         string           `json:"description" yaml:"description" table:"DESCRIPTION,wide"`
 	Variants            []Variant        `json:"variants" yaml:"variants" table:"-"`
-	VariantsDisplay     string           `json:"-" yaml:"-" table:"VARIANTS"`
+	VariantsDisplay     string           `json:"-" yaml:"-" table:"VARIANTS,literal"`
 	Flags               []FeatureFlag    `json:"flags" yaml:"flags" table:"-"`
 	FlagsDisplay        string           `json:"-" yaml:"-" table:"FLAGS"`
 	Owner               string           `json:"owner" yaml:"owner" table:"OWNER,wide"`

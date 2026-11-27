@@ -217,7 +217,7 @@ type TargetingRow struct {
 	ID         string `table:"ID"`
 	Name       string `table:"NAME,wide"`
 	Conditions string `table:"CONDITIONS"`
-	Variant    string `table:"VARIANT"`
+	Variant    string `table:"VARIANT,literal"`
 	Rollout    string `table:"ROLLOUT"`
 	Bucketing  string `table:"BUCKETING,wide"`
 	Version    int    `table:"VERSION,wide"`
@@ -271,7 +271,7 @@ type TargetingRuleRow struct {
 	ID         string `table:"ID"`
 	Name       string `table:"NAME,wide"`
 	Conditions string `table:"CONDITIONS"`
-	Variant    string `table:"VARIANT"`
+	Variant    string `table:"VARIANT,literal"`
 	Rollout    string `table:"ROLLOUT"`
 	Bucketing  string `table:"BUCKETING,wide"`
 }

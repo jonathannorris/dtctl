@@ -1,9 +1,11 @@
 package cmd
 
 import (
+	"cmp"
 	"encoding/json"
 	"fmt"
 	"io"
+	"slices"
 	"sort"
 	"strings"
 
@@ -111,6 +113,9 @@ Examples:
 
 			if ctx := cmdContext(cmd); useActionDescribeTextView(ctx) {
 				out := currentStdout(ctx)
+				users := newFMUserNames(c)
+				users.modificationInfo(&f.ModificationInfo)
+				f.Owner, f.Maintainers = users.name(f.Owner), users.names(f.Maintainers)
 				printFMFeatureDescribe(out, f)
 				// The per-stage summary needs the targeting read scope, which
 				// the feature itself does not; without it the feature still
@@ -118,7 +123,7 @@ Examples:
 				if stages, err := h.ListFeatureTargeting(project, f.Key); err != nil {
 					output.FprintWarning(currentStderr(ctx), "release stage targeting not shown: %v", err)
 				} else {
-					printFMFeatureStages(out, f.Key, stages)
+					printFMFeatureStages(out, f.Key, stages, newFMVariantColors(f.Variants))
 				}
 				return nil
 			}
@@ -157,6 +162,7 @@ func printFMFeatureDescribe(w io.Writer, f *featuremanagement.Feature) {
 	for _, v := range f.Variants {
 		variantWidth = max(variantWidth, len(v.Key))
 	}
+	colors := newFMVariantColors(f.Variants)
 
 	fmt.Fprintln(w)
 	output.FprintDescribeSection(w, "Variants:")
@@ -167,10 +173,10 @@ func printFMFeatureDescribe(w io.Writer, f *featuremanagement.Feature) {
 		// A variant created from flags is named after its key; print the name
 		// only when it adds something, as for flags below.
 		if v.Name == "" || v.Name == v.Key {
-			fmt.Fprintf(w, "  %s\n", v.Key)
+			fmt.Fprintf(w, "  %s\n", colors.paint(v.Key, 0))
 			continue
 		}
-		fmt.Fprintf(w, "  %-*s  %s\n", variantWidth, v.Key, v.Name)
+		fmt.Fprintf(w, "  %s  %s\n", colors.paint(v.Key, variantWidth), v.Name)
 	}
 
 	fmt.Fprintln(w)
@@ -194,9 +200,71 @@ func printFMFeatureDescribe(w io.Writer, f *featuremanagement.Feature) {
 			fmt.Fprintf(w, "    Schema: %s\n", t)
 		}
 		for _, key := range flagVariantOrder(f.Variants, fl) {
-			fmt.Fprintf(w, "    %-*s  %s\n", variantWidth+1, key+":", flagValue(fl.Variants[key]))
+			fmt.Fprintf(w, "    %s%s  %s\n", colors.paint(key, 0), ":"+strings.Repeat(" ", max(0, variantWidth-len(key))), flagValue(fl.Variants[key]))
 		}
 	}
+}
+
+// fmVariantColor is one entry of the variant palette: a Dynatrace chart color
+// for terminals that render 24-bit color, and the nearest of the 16 ANSI
+// colors for the rest.
+type fmVariantColor struct {
+	r, g, b  uint8
+	fallback string
+}
+
+func (c fmVariantColor) code() string {
+	if output.TrueColorEnabled() {
+		return output.RGB(c.r, c.g, c.b)
+	}
+	return c.fallback
+}
+
+// fmVariantPalette colors variants by display order with the Strato
+// categorical chart colors Dynatrace apps use for series (dark theme), minus
+// the near-white and grey entries that read as plain text. Green comes last,
+// so a feature's first variants never read as success or failure.
+var fmVariantPalette = []fmVariantColor{
+	{0x2e, 0x5b, 0xd6, output.BrightBlue},    // categorical 01
+	{0xd3, 0x50, 0x91, output.BrightMagenta}, // categorical 04
+	{0xb6, 0x8c, 0x2b, output.BrightYellow},  // categorical 06
+	{0x8d, 0x74, 0xcd, output.Magenta},       // categorical 08
+	{0x42, 0x85, 0xa9, output.BrightCyan},    // categorical 07
+	{0x36, 0x81, 0x60, output.Green},         // categorical 03
+}
+
+// fmVariantColors gives each of a feature's variants its own color, so one
+// variant reads the same in the variant list, a flag's values and what a
+// stage serves.
+type fmVariantColors map[string]fmVariantColor
+
+func newFMVariantColors(variants []featuremanagement.Variant) fmVariantColors {
+	ordered := slices.Clone(variants)
+	slices.SortStableFunc(ordered, func(a, b featuremanagement.Variant) int {
+		return cmp.Compare(fmDisplayOrder(a), fmDisplayOrder(b))
+	})
+	colors := make(fmVariantColors, len(ordered))
+	for i, v := range ordered {
+		colors[v.Key] = fmVariantPalette[i%len(fmVariantPalette)]
+	}
+	return colors
+}
+
+func fmDisplayOrder(v featuremanagement.Variant) int {
+	if v.DisplayOrder == nil {
+		return 0
+	}
+	return *v.DisplayOrder
+}
+
+// paint pads key to width and colors it. Padding comes first so the escape
+// codes don't count toward the column; a key with no color stays plain.
+func (c fmVariantColors) paint(key string, width int) string {
+	s := fmt.Sprintf("%-*s", width, key)
+	if color, ok := c[key]; ok {
+		return output.Colorize(color.code(), s)
+	}
+	return s
 }
 
 // flagVariantOrder lists a flag's variant keys in the feature's variant

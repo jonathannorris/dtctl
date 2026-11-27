@@ -37,8 +37,8 @@ type ProjectOverrideRow struct {
 	Feature     string `table:"FEATURE"`
 	FeatureName string `table:"FEATURE_NAME,wide"`
 	Stage       string `table:"STAGE"`
-	Variant     string `table:"VARIANT"`
-	VariantName string `table:"VARIANT_NAME,wide"`
+	Variant     string `table:"VARIANT,literal"`
+	VariantName string `table:"VARIANT_NAME,wide,literal"`
 }
 
 // ProjectOverrideRows flattens a project's overrides into table rows.
@@ -59,7 +59,7 @@ func ProjectOverrideRows(items []FeatureMyOverrides) []ProjectOverrideRow {
 // release stage, with "-" where the caller has no override.
 type FeatureOverrideRow struct {
 	Stage        string `table:"STAGE"`
-	Variant      string `table:"VARIANT"`
+	Variant      string `table:"VARIANT,literal"`
 	LastModified string `table:"LAST_MODIFIED"`
 }
 
