@@ -49,6 +49,9 @@ type ContextAttributeDetails struct {
 	UsageCount *int `json:"usageCount,omitempty" yaml:"usageCount,omitempty"`
 	// BuiltIn attributes can't be modified or deleted.
 	BuiltIn bool `json:"builtIn" yaml:"builtIn"`
+
+	// unknown keeps members this type does not declare (decision 3).
+	unknown unknownFields
 }
 
 // ContextAttributeList is one page of context attributes (schema
