@@ -147,6 +147,9 @@ func TestFeatureManagementWriteScopesResolve(t *testing.T) {
 		"create fm release-stage":     {"feature-management:release-stages:write"},
 		"update fm release-stage":     {"feature-management:release-stages:read", "feature-management:release-stages:write"},
 		"delete fm release-stage":     {"feature-management:release-stages:delete", "feature-management:release-stages:read"},
+		"create fm context-attribute": {"feature-management:context-attributes:write"},
+		"update fm context-attribute": {"feature-management:context-attributes:read", "feature-management:context-attributes:write"},
+		"delete fm context-attribute": {"feature-management:context-attributes:delete", "feature-management:context-attributes:read"},
 	}
 	verbs := commands.BuildVerbs(rootCmd)
 	for path, scopes := range want {

@@ -40,6 +40,7 @@ func DevelopmentResourceFeatures() map[string]string {
 var developmentSharedWrites = map[string][]Access{
 	"fm/project":           {AccessWrite},
 	"fm/release-stage":     {AccessWrite},
+	"fm/context-attribute": {AccessWrite, AccessDelete},
 	"fm/feature":           {AccessWrite, AccessDelete},
 	"fm/feature-targeting": {AccessWrite, AccessDelete},
 }
@@ -91,6 +92,11 @@ var developmentCommandScopes = map[string][]string{
 	// lists them all.
 	"update fm/release-stage": {"feature-management:release-stages:read", "feature-management:release-stages:write"},
 	"delete fm/release-stage": {"feature-management:release-stages:read", "feature-management:release-stages:delete"},
+
+	// Context attribute updates read the attribute first; deletes also read
+	// its usage, to refuse one a rule still references.
+	"update fm/context-attribute": {"feature-management:context-attributes:read", "feature-management:context-attributes:write"},
+	"delete fm/context-attribute": {"feature-management:context-attributes:read", "feature-management:context-attributes:delete"},
 }
 
 var (

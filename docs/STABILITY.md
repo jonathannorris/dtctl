@@ -210,9 +210,9 @@ deprecation cycle. Nothing stated here is relaxed by reaching 1.0.
 
 ## Summary
 
-- commands: 269 stable, 22 experimental, 50 development
+- commands: 269 stable, 22 experimental, 53 development
 - global flags (accepted on every command): 11
-- entries below (commands + flags): 1113
+- entries below (commands + flags): 1127
 
 ## Surface
 
@@ -414,6 +414,13 @@ create extension                     stable
   --version                          stable
 create fm                            development  (opt-in key: feature-management)
   --project                          development
+create fm context-attribute          development
+  --context-key                      development
+  --description                      development
+  --file                             development
+  --name                             development
+  --schema                           development
+  --type                             development
 create fm feature                    development
   --description                      development
   --file                             development
@@ -556,6 +563,8 @@ delete edgeconnect                   stable
   --yes                              stable
 delete fm                            development  (opt-in key: feature-management)
   --project                          development
+delete fm context-attribute          development
+  --yes                              development
 delete fm feature                    development
   --yes                              development
 delete fm feature-targeting          development
@@ -1220,6 +1229,11 @@ update extensions                    stable
   --with-configurations              stable
 update fm                            development  (opt-in key: feature-management)
   --project                          development
+update fm context-attribute          development
+  --description                      development
+  --name                             development
+  --schema                           development
+  --version                          development
 update fm feature                    development
   --add-flag                         development
   --add-variant                      development

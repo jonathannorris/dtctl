@@ -343,6 +343,7 @@ A development-tier command is not registered until you opt in to its feature (se
 | `feature-management` | `dtctl delete fm project ...` | `feature-management:projects:delete`, at the `dangerously-unrestricted` safety level only |
 | `feature-management` | `dtctl create\|update fm release-stage ...` | `feature-management:release-stages:write`, at the `readwrite-all` and `dangerously-unrestricted` safety levels only |
 | `feature-management` | `dtctl delete fm release-stage ...` | `feature-management:release-stages:delete`, at the `dangerously-unrestricted` safety level only |
+| `feature-management` | `dtctl create\|update\|delete fm context-attribute ...` | `feature-management:context-attributes:write`, `feature-management:context-attributes:delete`, at the `readwrite-all` and `dangerously-unrestricted` safety levels only |
 
 Enable the feature first, then log in again to pick the scopes up: `DTCTL_DEVELOPMENT=feature-management dtctl auth login`. With the feature enabled, `dtctl --check-scopes` reports each `fm` command's requirement; `get fm overrides` and `describe fm overrides` need the projects, features and release-stages read scopes together.
 

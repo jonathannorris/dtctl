@@ -271,8 +271,12 @@ var ResourceScopes = map[string]AccessScopes{
 		Write:  []string{"feature-management:release-stage-targetings:write"},
 		Delete: []string{"feature-management:release-stage-targetings:write"},
 	},
-	"fm/context-attribute": {Read: []string{"feature-management:context-attributes:read"}},
-	"fm/sdk-key":           {Read: []string{"feature-management:sdk-keys:read"}},
+	"fm/context-attribute": {
+		Read:   []string{"feature-management:context-attributes:read"},
+		Write:  []string{"feature-management:context-attributes:write"},
+		Delete: []string{"feature-management:context-attributes:delete"},
+	},
+	"fm/sdk-key": {Read: []string{"feature-management:sdk-keys:read"}},
 	// The caller's own overrides: the API requires all three read scopes.
 	"fm/override": {Read: []string{
 		"feature-management:projects:read",
