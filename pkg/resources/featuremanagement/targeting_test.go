@@ -69,6 +69,12 @@ func TestShadowedRules(t *testing.T) {
 	if !reflect.DeepEqual(got, want) {
 		t.Errorf("ShadowedRules = %q, want %q", got, want)
 	}
+	// A rollout rule matches only its share of requests; the rest fall
+	// through, so the rule below it is still evaluated.
+	rollout := &Rollout{Steps: []RolloutStep{{Percentage: 10}}}
+	if got := ShadowedRules([]TargetingRule{{Rollout: rollout}, {}}); got != nil {
+		t.Errorf("rollout rule: ShadowedRules = %q, want none", got)
+	}
 	if got := ShadowedRules([]TargetingRule{{Conditions: cond}, {}}); got != nil {
 		t.Errorf("catch-all last = %q, want none", got)
 	}

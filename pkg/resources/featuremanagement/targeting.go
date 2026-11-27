@@ -189,12 +189,15 @@ func ShortRuleID(id string) string {
 }
 
 // ShadowedRules returns a warning for every rule placed below a rule with no
-// conditions, which matches all requests, so the lower rule is never
-// evaluated. Positions are 0-based, as dtctl takes them.
+// conditions and no rollout, which matches all requests, so the lower rule is
+// never evaluated. A rollout is part of the match: the service compiles it to
+// a condition, so requests outside its percentage, before its first step, or
+// without the bucketing attribute fall through to the next rule. Positions
+// are 0-based, as dtctl takes them.
 func ShadowedRules(rules []TargetingRule) []string {
 	var out []string
 	for i, r := range rules {
-		if len(r.Conditions) == 0 {
+		if len(r.Conditions) == 0 && r.Rollout == nil {
 			for j := i + 1; j < len(rules); j++ {
 				out = append(out, fmt.Sprintf("rule %d will not be evaluated: rule %d matches all requests", j, i))
 			}
