@@ -32,6 +32,9 @@ type ReleaseStageDetails struct {
 	ModificationInfo ModificationInfo `json:"modificationInfo" yaml:"modificationInfo"`
 	ResourceContext  *ResourceContext `json:"resourceContext,omitempty" yaml:"resourceContext,omitempty"`
 	Version          int              `json:"version" yaml:"version"`
+
+	// unknown keeps members this type does not declare (decision 3).
+	unknown unknownFields
 }
 
 // ReleaseStageList is one page of release stages (schema ReleaseStageList).
