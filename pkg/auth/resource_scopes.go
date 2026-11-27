@@ -250,7 +250,11 @@ var ResourceScopes = map[string]AccessScopes{
 	// for them only when the feature is opted into (developmentResources).
 	// Keys are group-qualified ("fm/project"), since the leaf names are
 	// generic enough to collide with other resources.
-	"fm/project":       {Read: []string{"feature-management:projects:read"}},
+	"fm/project": {
+		Read:   []string{"feature-management:projects:read"},
+		Write:  []string{"feature-management:projects:write"},
+		Delete: []string{"feature-management:projects:delete"},
+	},
 	"fm/release-stage": {Read: []string{"feature-management:release-stages:read"}},
 	"fm/feature": {
 		Read:   []string{"feature-management:features:read"},

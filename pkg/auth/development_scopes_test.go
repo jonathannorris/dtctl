@@ -72,20 +72,44 @@ func TestLoginScopes_SharedWritesFromReadWriteAllUp(t *testing.T) {
 }
 
 // Every development command-scope entry names a development resource, and
-// login with the opt-in at readwrite-all requests every scope it lists, so a
-// user allowed to run the command holds what it needs.
+// login with the opt-in at the lowest level that runs the command requests
+// every scope it lists, so a user allowed to run the command holds what it
+// needs: readwrite-all, or dangerously-unrestricted for the deletes gated
+// like a bucket delete.
 func TestDevelopmentCommandScopesAreRequested(t *testing.T) {
 	enabled := map[string]bool{"feature-management": true}
-	requested := LoginScopes(config.SafetyLevelReadWriteAll, enabled)
 	for key, scopes := range developmentCommandScopes {
-		_, resource, _ := strings.Cut(key, " ")
+		verb, resource, _ := strings.Cut(key, " ")
 		if _, ok := developmentResources[resource]; !ok {
 			t.Errorf("%q: %q is not a development resource", key, resource)
 		}
+		level := config.SafetyLevelReadWriteAll
+		if verb == "delete" && slices.Contains(developmentUnrestrictedAccess[resource], AccessDelete) {
+			level = config.SafetyLevelDangerouslyUnrestricted
+		}
+		requested := LoginScopes(level, enabled)
 		for _, s := range scopes {
 			if !slices.Contains(requested, s) {
-				t.Errorf("%q needs %q, which login at readwrite-all with the opt-in does not request", key, s)
+				t.Errorf("%q needs %q, which login at %s with the opt-in does not request", key, s, level)
 			}
 		}
+	}
+}
+
+// A project delete takes everything in the project along, so dtctl gates it
+// like a bucket delete and requests its scope only at dangerously-unrestricted.
+func TestLoginScopes_ProjectDeleteOnlyWhenUnrestricted(t *testing.T) {
+	enabled := map[string]bool{"feature-management": true}
+	for level, want := range map[config.SafetyLevel]bool{
+		config.SafetyLevelReadWriteMine:           false,
+		config.SafetyLevelReadWriteAll:            false,
+		config.SafetyLevelDangerouslyUnrestricted: true,
+	} {
+		if got := slices.Contains(LoginScopes(level, enabled), "feature-management:projects:delete"); got != want {
+			t.Errorf("LoginScopes(%s) has projects:delete = %v, want %v", level, got, want)
+		}
+	}
+	if !slices.Contains(LoginScopes(config.SafetyLevelReadWriteAll, enabled), "feature-management:projects:write") {
+		t.Error("LoginScopes(readwrite-all) lacks projects:write")
 	}
 }

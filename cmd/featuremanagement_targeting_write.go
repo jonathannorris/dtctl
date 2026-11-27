@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strings"
 
@@ -58,23 +59,45 @@ type fmTargetingWrite struct {
 // shared, so every write but the caller's own overrides is checked with
 // OwnershipShared (design decision 12): readwrite-mine refuses it.
 func setupFMWrite(cmd *cobra.Command, op safety.Operation) (*config.Config, string, *featuremanagement.Handler, output.Printer, error) {
-	ctx := cmdContext(cmd)
-	cfg, err := loadConfig(ctx)
+	cfg, err := loadConfig(cmdContext(cmd))
 	if err != nil {
 		return nil, "", nil, nil, err
 	}
-	if err := checkSafety(ctx, cfg, op, safety.OwnershipShared); err != nil {
+	if err := checkFMSafety(cmdContext(cmd), cfg, op, safety.OwnershipShared); err != nil {
 		return nil, "", nil, nil, err
 	}
 	project, err := resolveFMProject(cmd, cfg)
 	if err != nil {
 		return nil, "", nil, nil, err
 	}
+	h, printer, err := newFMWriteHandler(cmd, cfg)
+	return cfg, project, h, printer, err
+}
+
+// newFMWriteHandler is the client half of an FM write's setup, after the
+// safety check.
+func newFMWriteHandler(cmd *cobra.Command, cfg *config.Config) (*featuremanagement.Handler, output.Printer, error) {
+	ctx := cmdContext(cmd)
 	var c *client.Client
-	if c, err = newClientFromConfig(ctx, cfg); err != nil {
-		return nil, "", nil, nil, err
+	c, err := newClientFromConfig(ctx, cfg)
+	if err != nil {
+		return nil, nil, err
 	}
-	return cfg, project, featuremanagement.NewHandler(c), newPrinterCtx(ctx), nil
+	return featuremanagement.NewHandler(c), newPrinterCtx(ctx), nil
+}
+
+// checkFMSafety is checkSafety with the refusal of OperationDeleteBucket
+// reworded: FM gates the deletes that take dependent resources with them
+// (a project, a release stage, an SDK key) at that level, and the checker's
+// own wording names buckets.
+func checkFMSafety(ctx context.Context, cfg *config.Config, op safety.Operation, ownership safety.ResourceOwnership) error {
+	err := checkSafety(ctx, cfg, op, ownership)
+	var se *safety.SafetyError
+	if op == safety.OperationDeleteBucket && errors.As(err, &se) {
+		se.Reason = fmt.Sprintf("Context '%s' (%s) does not allow deleting a Feature Management project, release stage or SDK key", se.ContextName, se.SafetyLevel)
+		se.Suggestions = []string{"These deletes take every resource that depends on them along and require the 'dangerously-unrestricted' safety level"}
+	}
+	return err
 }
 
 // requireFMStage returns --stage, which every targeting write requires.

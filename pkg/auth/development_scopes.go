@@ -38,8 +38,17 @@ func DevelopmentResourceFeatures() map[string]string {
 // its writes are refused at readwrite-mine (design decision 12) and their
 // scopes are not requested there.
 var developmentSharedWrites = map[string][]Access{
+	"fm/project":           {AccessWrite},
 	"fm/feature":           {AccessWrite, AccessDelete},
 	"fm/feature-targeting": {AccessWrite, AccessDelete},
+}
+
+// developmentUnrestrictedAccess is the access a development-tier resource
+// adds only at dangerously-unrestricted: the deletes dtctl gates like a
+// bucket delete (OperationDeleteBucket), because they take every resource
+// that depends on them along.
+var developmentUnrestrictedAccess = map[string][]Access{
+	"fm/project": {AccessDelete},
 }
 
 // developmentSharedWriteExtras are scopes a development-tier resource's
@@ -71,6 +80,10 @@ var developmentCommandScopes = map[string][]string{
 	// the catalog lists the full update's scope, the common case.
 	"update fm/feature": {"feature-management:features:read", "feature-management:features:write"},
 	"delete fm/feature": {"feature-management:features:read", "feature-management:features:delete"},
+
+	// Project updates and deletes read the project first.
+	"update fm/project": {"feature-management:projects:read", "feature-management:projects:write"},
+	"delete fm/project": {"feature-management:projects:read", "feature-management:projects:delete"},
 }
 
 var (
@@ -90,7 +103,8 @@ var (
 //
 // Every level gets the gated resources' read scopes. Their write scopes
 // follow the same per-level rules as addAllExtras: developmentSharedWrites
-// joins from readwrite-all upward.
+// joins from readwrite-all upward, developmentUnrestrictedAccess only at
+// dangerously-unrestricted.
 func LoginScopes(level config.SafetyLevel, enabled map[string]bool) []string {
 	s := newScopeSet()
 	s.add(safetyLevelScopes(level)...)
@@ -105,6 +119,9 @@ func LoginScopes(level config.SafetyLevel, enabled map[string]bool) []string {
 			if grantsSharedWrites(level) {
 				s.addResource(resource, developmentSharedWrites[resource]...)
 				s.add(developmentSharedWriteExtras[resource]...)
+			}
+			if level == config.SafetyLevelDangerouslyUnrestricted {
+				s.addResource(resource, developmentUnrestrictedAccess[resource]...)
 			}
 		}
 	}

@@ -210,9 +210,9 @@ deprecation cycle. Nothing stated here is relaxed by reaching 1.0.
 
 ## Summary
 
-- commands: 269 stable, 22 experimental, 44 development
+- commands: 269 stable, 22 experimental, 47 development
 - global flags (accepted on every command): 11
-- entries below (commands + flags): 1080
+- entries below (commands + flags): 1096
 
 ## Surface
 
@@ -434,6 +434,13 @@ create fm feature-targeting          development
   --stage                            development
   --variant                          development
   --version                          development
+create fm project                    development
+  --change-requests                  development
+  --description                      development
+  --file                             development
+  --maintainers                      development
+  --name                             development
+  --owner                            development
 create gcp                           stable
 create gcp connection                stable
   --dry-run                          stable
@@ -549,6 +556,8 @@ delete fm feature-targeting          development
   --position                         development
   --stage                            development
   --version                          development
+  --yes                              development
+delete fm project                    development
   --yes                              development
 delete gcp                           stable
 delete gcp connection                stable
@@ -1234,6 +1243,13 @@ update fm feature-targeting          development
   --rollout                          development
   --stage                            development
   --variant                          development
+  --version                          development
+update fm project                    development
+  --change-requests                  development
+  --description                      development
+  --maintainers                      development
+  --name                             development
+  --owner                            development
   --version                          development
 update gcp                           stable
 update gcp connection                experimental  since 0.39.0

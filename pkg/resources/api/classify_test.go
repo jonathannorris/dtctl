@@ -292,6 +292,23 @@ func TestClassify_BucketEscalationMatchesNativeCommand(t *testing.T) {
 		"the reason must name what the caller actually needs")
 }
 
+// TestClassify_FMDeletesEscalate pins the passthrough against the Feature
+// Management deletes dtctl gates like a bucket delete, and leaves the
+// project's other deletes at their own level.
+func TestClassify_FMDeletesEscalate(t *testing.T) {
+	cases := []struct {
+		method, path string
+		want         safety.Operation
+	}{
+		{"DELETE", "/platform/feature-management/v0.1/projects/checkout", safety.OperationDeleteBucket},
+		{"DELETE", "/platform/feature-management/v0.1/projects/checkout/features/new-checkout", safety.OperationDelete},
+	}
+	for _, tc := range cases {
+		c := Classify(tc.method, tc.path, "Feature Management", nil)
+		require.Equal(t, tc.want, c.SafetyOp, "%s %s", tc.method, tc.path)
+	}
+}
+
 // TestClassify_EscalationNeverLowers guards the escalation table itself: a
 // pattern is an override that raises the gate, never one that relaxes it.
 func TestClassify_EscalationNeverLowers(t *testing.T) {

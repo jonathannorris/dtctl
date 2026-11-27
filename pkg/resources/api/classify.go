@@ -238,6 +238,16 @@ var destructivePatterns = []destructivePattern{
 		why: "deleting stored records is irreversible, so it requires a " +
 			"dangerously-unrestricted context",
 	},
+	{
+		// DELETE /platform/feature-management/v0.1/projects/<key> — the
+		// endpoint behind `dtctl delete fm project`, which takes every
+		// feature, release stage, context attribute and SDK key along.
+		methods: []string{"DELETE"},
+		path:    regexp.MustCompile(`^/platform/feature-management/v[0-9.]+/projects/[^/]+$`),
+		op:      safety.OperationDeleteBucket,
+		why: "deleting a Feature Management project deletes everything in it, so it " +
+			"requires the same dangerously-unrestricted context as 'dtctl delete fm project'",
+	},
 }
 
 // escalateDestructive raises the gate for a curated set of irreversible
