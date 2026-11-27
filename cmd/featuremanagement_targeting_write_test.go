@@ -64,9 +64,12 @@ func runFMWrite(t *testing.T, srv *fmWriteServer, level config.SafetyLevel, grou
 	setupPlatformCmdTest(t, srv.Server, "json")
 	// The shell running the tests may be an AI agent's, which turns agent mode
 	// on by detection; these tests read the plain -o json result.
-	origNoAgent := gFlags.noAgent
-	t.Cleanup(func() { gFlags.noAgent = origNoAgent })
+	origNoAgent, origDryRun := gFlags.noAgent, gFlags.dryRun
+	t.Cleanup(func() { gFlags.noAgent, gFlags.dryRun = origNoAgent, origDryRun })
 	gFlags.noAgent = true
+	// A dry-run test elsewhere in the package may leave the flag set; these
+	// tests exercise the real writes.
+	gFlags.dryRun = false
 	cfg, err := LoadConfig()
 	require.NoError(t, err)
 	cur, err := cfg.CurrentContextObj()

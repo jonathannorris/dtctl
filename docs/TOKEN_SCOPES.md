@@ -345,6 +345,7 @@ A development-tier command is not registered until you opt in to its feature (se
 | `feature-management` | `dtctl delete fm release-stage ...` | `feature-management:release-stages:delete`, at the `dangerously-unrestricted` safety level only |
 | `feature-management` | `dtctl create fm sdk-key ...` | `feature-management:sdk-keys:write`, at the `readwrite-all` and `dangerously-unrestricted` safety levels only |
 | `feature-management` | `dtctl delete fm sdk-key ...` | `feature-management:sdk-keys:delete`, at the `dangerously-unrestricted` safety level only |
+| `feature-management` | `dtctl apply fm feature ...`, `dtctl apply fm feature-targeting ...` | the scopes of `update fm feature` and `update fm feature-targeting`; `--dry-run` needs only the read scopes |
 | `feature-management` | `dtctl update\|delete fm overrides ...` | the read scopes above: the API gates your own overrides and targeting keys by who is signed in, so they need no write scope and run at `readwrite-mine` |
 | `feature-management` | `dtctl create\|update\|delete fm context-attribute ...` | `feature-management:context-attributes:write`, `feature-management:context-attributes:delete`, at the `readwrite-all` and `dangerously-unrestricted` safety levels only |
 

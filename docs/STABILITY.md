@@ -210,9 +210,9 @@ deprecation cycle. Nothing stated here is relaxed by reaching 1.0.
 
 ## Summary
 
-- commands: 269 stable, 22 experimental, 57 development
+- commands: 269 stable, 22 experimental, 60 development
 - global flags (accepted on every command): 11
-- entries below (commands + flags): 1142
+- entries below (commands + flags): 1154
 
 ## Surface
 
@@ -283,6 +283,18 @@ apply extension-config               stable
   --file                             stable
   --scope                            stable
   --set                              stable
+apply fm                             development  (opt-in key: feature-management)
+  --project                          development
+apply fm feature                     development
+  --dry-run                          development
+  --file                             development
+  --show-diff                        development
+apply fm feature-targeting           development
+  --dry-run                          development
+  --file                             development
+  --force                            development
+  --show-diff                        development
+  --stage                            development
 auth                                 stable
 auth login                           stable
   --account-urn                      stable

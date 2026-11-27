@@ -102,6 +102,11 @@ var developmentCommandScopes = map[string][]string{
 
 	// SDK key writes resolve the stage and list its keys: a create to count
 	// the keys of its type, a delete to find the full key a masked one names.
+	// A typed apply reads what it replaces. A targeting apply also runs the
+	// rule checks, which read the feature and the context attributes.
+	"apply fm/feature":           {"feature-management:features:read", "feature-management:features:write"},
+	"apply fm/feature-targeting": fmRuleWriteScopes,
+
 	"create fm/sdk-key": {"feature-management:release-stages:read", "feature-management:sdk-keys:read", "feature-management:sdk-keys:write"},
 	"delete fm/sdk-key": {"feature-management:release-stages:read", "feature-management:sdk-keys:read", "feature-management:sdk-keys:delete"},
 }
