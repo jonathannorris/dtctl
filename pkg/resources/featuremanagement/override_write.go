@@ -153,3 +153,17 @@ func (h *Handler) DeleteAllOverrides(projectKey string) error {
 func (h *Handler) DeleteTargetingKeys(projectKey string) error {
 	return h.sdk.DeleteOverridesProfile(context.Background(), projectKey)
 }
+
+// TargetingKeyRow is one table row of the caller's targeting keys.
+type TargetingKeyRow struct {
+	TargetingKey string `table:"TARGETING_KEY"`
+}
+
+// TargetingKeyRows turns targeting keys into table rows.
+func TargetingKeyRows(keys []string) []TargetingKeyRow {
+	rows := make([]TargetingKeyRow, len(keys))
+	for i, k := range keys {
+		rows[i] = TargetingKeyRow{TargetingKey: k}
+	}
+	return rows
+}

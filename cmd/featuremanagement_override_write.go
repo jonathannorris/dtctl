@@ -89,7 +89,11 @@ Examples:
 				if !changed {
 					msg = fmt.Sprintf("Nothing to change: your targeting keys in project %s already are as requested", project)
 				}
-				return printFMWrite(ctx, printer, "update", "fm/override", msg, changed, nil, map[string][]string{"targetingKeys": keys})
+				var view any = map[string][]string{"targetingKeys": keys}
+				if useFMTableView(ctx) {
+					view = featuremanagement.TargetingKeyRows(keys)
+				}
+				return printFMWrite(ctx, printer, "update", "fm/override", msg, changed, nil, view)
 			}
 			var v *string
 			if !clearOverride {
