@@ -24,13 +24,29 @@ func TestFeatureCreateSpec_Body(t *testing.T) {
 		t.Errorf("body = %s\nwant   %s", got, want)
 	}
 
-	body, err = FeatureCreateSpec{Key: "f", Name: "F", Variants: []string{"a", "b"}, FlagKey: "layout", FlagType: "STRING",
-		FlagValues: []string{"a=classic", "b=one-page"}}.Body()
-	if err != nil || body.Flag.Variants["b"] != "one-page" || body.Flag.Key != "layout" {
+	body, err = FeatureCreateSpec{Key: "f", Name: "F", Variants: []string{"va", "vb"}, FlagKey: "layout", FlagType: "STRING",
+		FlagValues: []string{"va=classic", "vb=one-page"}}.Body()
+	if err != nil || body.Flag.Variants["vb"] != "one-page" || body.Flag.Key != "layout" {
 		t.Errorf("body = %+v, %v", body.Flag, err)
 	}
 	if _, err := (FeatureCreateSpec{Key: "f", Name: "F", FlagValues: []string{"enabled=true"}}).Body(); err == nil || !strings.Contains(err.Error(), "missing: disabled") {
 		t.Errorf("partial values err = %v", err)
+	}
+	if _, err := (FeatureCreateSpec{Key: "f", Name: "F", Variants: []string{"on", "a"}}).Body(); err == nil || !strings.Contains(err.Error(), `invalid variant key "a"`) {
+		t.Errorf("short variant key err = %v", err)
+	}
+}
+
+func TestCheckVariantKey(t *testing.T) {
+	for _, k := range []string{"on", "a1", "variation-a", "v1.2_beta", "0x"} {
+		if err := checkVariantKey("--add-variant", k); err != nil {
+			t.Errorf("%q: %v", k, err)
+		}
+	}
+	for _, k := range []string{"a", "A1", "-on", "on-", "o n", strings.Repeat("a", 257)} {
+		if err := checkVariantKey("--add-variant", k); err == nil {
+			t.Errorf("%q: expected an error", k)
+		}
 	}
 }
 
@@ -168,10 +184,12 @@ func TestChangeFeatureVariantsAndFlags_AddVariantKeepsEverything(t *testing.T) {
 func TestChangeFeatureVariantsAndFlags_Validation(t *testing.T) {
 	ff, h := newFakeFeature(t)
 	for _, c := range []VariantFlagChange{
-		{AddVariant: "express"},                          // no value for layout
-		{AddVariant: "on", Values: []string{"layout=x"}}, // exists
-		{AddFlag: "layout"},                              // exists
-		{RemoveFlag: "nope"},                             // missing
+		{AddVariant: "x", Values: []string{"layout=x"}},                  // key too short for the service
+		{AddVariant: "Express", Values: []string{"layout=x"}},            // uppercase
+		{AddVariant: "express"},                                          // no value for layout
+		{AddVariant: "on", Values: []string{"layout=x"}},                 // exists
+		{AddFlag: "layout"},                                              // exists
+		{RemoveFlag: "nope"},                                             // missing
 		{AddFlag: "n", FlagType: "NUMBER", FlagValues: []string{"on=1"}}, // partial
 	} {
 		if _, err := h.ChangeFeatureVariantsAndFlags("checkout", "new-checkout", c, WriteOptions{}); err == nil {

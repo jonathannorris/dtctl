@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"reflect"
+	"regexp"
 	"sort"
 	"strconv"
 	"strings"
@@ -52,6 +53,18 @@ type FeatureCreateSpec struct {
 }
 
 // Body builds the create request.
+// variantKeyPattern is the service's own constraint on a variant key, checked
+// here only so the error names the rule instead of echoing the regex after a
+// round trip. It must never be stricter than the service's.
+var variantKeyPattern = regexp.MustCompile(`^[a-z0-9][-a-z0-9_.]{0,254}[a-z0-9]$`)
+
+func checkVariantKey(flag, key string) error {
+	if variantKeyPattern.MatchString(key) {
+		return nil
+	}
+	return fmt.Errorf("%s: invalid variant key %q: use 2-256 lowercase letters, digits, '-', '_' or '.', starting and ending with a letter or digit", flag, key)
+}
+
 func (s FeatureCreateSpec) Body() (FeatureCreate, error) {
 	keys := s.Variants
 	if len(keys) == 0 {
@@ -66,6 +79,9 @@ func (s FeatureCreateSpec) Body() (FeatureCreate, error) {
 		k = strings.TrimSpace(k)
 		if k == "" || seen[k] {
 			return FeatureCreate{}, fmt.Errorf("--variants: variant keys must be unique and non-empty")
+		}
+		if err := checkVariantKey("--variants", k); err != nil {
+			return FeatureCreate{}, err
 		}
 		seen[k] = true
 		order := i
@@ -371,6 +387,9 @@ func (h *Handler) ChangeFeatureVariantsAndFlags(projectKey, keyOrName string, c 
 		}
 	}
 	if c.AddVariant != "" {
+		if err := checkVariantKey("--add-variant", c.AddVariant); err != nil {
+			return nil, err
+		}
 		if variantIndex(body.Variants, c.AddVariant) >= 0 {
 			return nil, fmt.Errorf("feature %q already has a variant %q", d.Key, c.AddVariant)
 		}
