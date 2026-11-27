@@ -1,0 +1,10 @@
+STAGE         TARGETING   RULES   
+development   off         0       
+production    on          3       
+
+production
+#   ID         CONDITIONS                     VARIANT                      ROLLOUT                       
+0   6f1c2b9e   targetingKey = user-1,user-2   variation-a                  -                             
+               and app.version >= 2.3.0                                                                  
+1   a93d07e1   all requests                   variation-a                  10% -> 50% (linear) -> 100%   
+2   0c4e8a72   all requests                   baseline=50,variation-a=50   -                             

@@ -1,0 +1,3 @@
+KEY            NAME           VARIANTS               FLAGS   STATUS     TYPE      
+new-checkout   New checkout   baseline,variation-a   2       ACTIVE     RELEASE   
+kill-switch    Kill switch                           0       ARCHIVED   OPS       

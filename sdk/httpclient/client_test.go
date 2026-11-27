@@ -5,6 +5,7 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 )
 
@@ -151,5 +152,37 @@ func TestClient_BeforeRequestErrorIsNotRetried(t *testing.T) {
 		SetBody(map[string]any{"ch": make(chan int)}).
 		Post("/platform/x/v1/y"); err == nil {
 		t.Fatal("expected an error from the request body middleware")
+	}
+}
+
+// A Feature Management SDK key travels in bodies (list and create responses)
+// and URLs (delete), where header redaction never sees it. Verbose logs keep
+// its public identifier and drop the secret.
+func TestVerboseLoggingRedactsSDKKeySecrets(t *testing.T) {
+	const (
+		public = "dt01.server_us_Abcdefghij"
+		key    = public + ".0123456789abcdef0123456789abcdef_0123456789"
+	)
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		_, _ = w.Write([]byte(`{"server":[{"sdkKey":"` + key + `","type":"server"}]}`))
+	}))
+	defer srv.Close()
+
+	c, err := New(srv.URL, WithToken("dt0c01.test"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	var log bytes.Buffer
+	c.EnableVerboseLogging(2, &log)
+	if _, err := c.HTTP().R().SetBody(map[string]string{"sdkKey": key}).Post("/keys/" + key); err != nil {
+		t.Fatal(err)
+	}
+
+	got := log.String()
+	if strings.Contains(got, "0123456789abcdef0123456789abcdef") {
+		t.Fatalf("verbose log contains the SDK key secret:\n%s", got)
+	}
+	if n := strings.Count(got, public+".[REDACTED]"); n != 3 {
+		t.Errorf("want the public identifier kept in the URL, request body and response body (3), got %d:\n%s", n, got)
 	}
 }

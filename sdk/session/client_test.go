@@ -8,6 +8,7 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"strings"
 	"sync/atomic"
 	"testing"
@@ -1025,5 +1026,45 @@ func TestNewClientFromConfig_LocalUnresolvedEnvVarNamesTheReference(t *testing.T
 		if !strings.Contains(err.Error(), want) {
 			t.Errorf("NewClientFromConfig() error = %q, want it to contain %q", err.Error(), want)
 		}
+	}
+}
+
+// The CLI's -vv logger is this one, so it must drop SDK key secrets from
+// URLs and bodies just like httpclient's.
+func TestSetVerbosityRedactsSDKKeySecrets(t *testing.T) {
+	const (
+		public = "dt01.server_us_Abcdefghij"
+		key    = public + ".0123456789abcdef0123456789abcdef_0123456789"
+	)
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		_, _ = w.Write([]byte(`{"server":[{"sdkKey":"` + key + `","type":"server"}]}`))
+	}))
+	defer srv.Close()
+
+	c, err := NewForTesting(srv.URL, "dt0c01.test")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	r, w, err := os.Pipe()
+	if err != nil {
+		t.Fatal(err)
+	}
+	orig := os.Stderr
+	os.Stderr = w
+	c.SetVerbosity(2)
+	_, reqErr := c.HTTP().R().SetBody(map[string]string{"sdkKey": key}).Post("/keys/" + key)
+	os.Stderr = orig
+	_ = w.Close()
+	logged, _ := io.ReadAll(r)
+	if reqErr != nil {
+		t.Fatal(reqErr)
+	}
+
+	if strings.Contains(string(logged), "0123456789abcdef0123456789abcdef") {
+		t.Fatalf("verbose log contains the SDK key secret:\n%s", logged)
+	}
+	if n := strings.Count(string(logged), public+".[REDACTED]"); n != 3 {
+		t.Errorf("want the public identifier kept in the URL, request body and response body (3), got %d:\n%s", n, logged)
 	}
 }

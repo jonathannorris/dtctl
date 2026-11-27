@@ -1,0 +1,8 @@
+featureKey: new-checkout
+overrides:
+  - releaseStageKey: development
+    variantKey: variation-a
+    lastModifiedTime: 2026-11-03T14:30:00Z
+  - releaseStageKey: production
+    variantKey: null
+    lastModifiedTime: null

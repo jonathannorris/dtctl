@@ -1,0 +1,10 @@
+targetingKeys:
+  - user-1
+items:
+  - featureKey: new-checkout
+    featureName: New checkout
+    overrides:
+      - releaseStageKey: development
+        releaseStageName: Development
+        variantKey: variation-a
+        variantName: Variation A

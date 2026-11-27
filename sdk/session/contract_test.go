@@ -82,6 +82,12 @@ func TestContract_LoadFullFixture(t *testing.T) {
 	if cfg.Contexts[1].Context.UsageTracking {
 		t.Error("prod usage-tracking must default to off when the key is absent")
 	}
+	if dev.FeatureManagement == nil || dev.FeatureManagement.Project != "checkout" {
+		t.Errorf("dev feature-management.project not parsed: %+v", dev.FeatureManagement)
+	}
+	if cfg.Contexts[1].Context.FeatureManagement != nil {
+		t.Error("prod feature-management must stay nil when the block is absent")
+	}
 }
 
 func TestContract_LoadMinimalFixture(t *testing.T) {

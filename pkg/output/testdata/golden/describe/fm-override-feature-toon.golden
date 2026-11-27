@@ -1,0 +1,4 @@
+featureKey: new-checkout
+overrides[2]{lastModifiedTime,releaseStageKey,variantKey}:
+  "2026-11-03T14:30:00Z",development,variation-a
+  null,production,null

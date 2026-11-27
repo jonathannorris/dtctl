@@ -466,11 +466,25 @@ func newNestedNode(verbName string, cmd *cobra.Command) *Verb {
 		v.SafetyOp = safetyOp
 	}
 	v.Access = string(auth.AccessForVerb(verbName, v.SafetyOp))
-	if scopes := auth.ScopesForCommand(verbName, cmd.Name(), auth.Access(v.Access)); len(scopes) > 0 {
+	if scopes := nestedScopes(verbName, cmd, auth.Access(v.Access)); len(scopes) > 0 {
 		v.RequiredScopes = append([]string(nil), scopes...)
 	}
 	annotateStability(v, cmd)
 	return v
+}
+
+// nestedScopes resolves the scopes of a command below a resource group. The
+// group-qualified name ("fm/projects") is tried first, so a group whose leaves
+// have generic names keys its entries by group rather than claiming the bare
+// name for every verb; the bare leaf name is the fallback the older groups
+// (aws, azure, gcp) rely on.
+func nestedScopes(verbName string, cmd *cobra.Command, access auth.Access) []string {
+	if p := cmd.Parent(); p != nil && p.Name() != verbName {
+		if scopes := auth.ScopesForCommand(verbName, p.Name()+"/"+cmd.Name(), access); len(scopes) > 0 {
+			return scopes
+		}
+	}
+	return auth.ScopesForCommand(verbName, cmd.Name(), access)
 }
 
 // isHelpTopic reports whether cmd is a cobra help topic (such as

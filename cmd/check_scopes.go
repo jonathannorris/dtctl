@@ -142,7 +142,7 @@ func scopePreflight(c *cobra.Command, args []string) (skip bool, err error) {
 		if req == scopeRequirementKnown {
 			alternatives = alternativesForInvocation(c, verb, resource)
 		}
-		result := computeScopeVerdict(cmdContext(c), verb, resource, required, alternatives, req)
+		result := computeScopeVerdict(cmdContext(c), verb, shownResource(c, verb, resource), required, alternatives, req)
 		// In agent mode the verdict must use the same envelope contract as every
 		// other command: an insufficient verdict reuses the ScopeError path (so it
 		// renders as an `insufficient_scope` error envelope with exit 5, identical
@@ -152,7 +152,7 @@ func scopePreflight(c *cobra.Command, args []string) (skip bool, err error) {
 			if result.Status == scopeStatusInsufficient {
 				return false, &ScopeError{
 					Verb:         verb,
-					Resource:     resource,
+					Resource:     result.Resource,
 					Required:     result.RequiredScopes,
 					Granted:      result.GrantedScopes,
 					Missing:      result.MissingScopes,
@@ -199,7 +199,7 @@ func scopePreflight(c *cobra.Command, args []string) (skip bool, err error) {
 	}
 	return false, &ScopeError{
 		Verb:         verb,
-		Resource:     resource,
+		Resource:     shownResource(c, verb, resource),
 		Required:     required,
 		Granted:      granted,
 		Missing:      missing,
@@ -230,6 +230,27 @@ func verbResource(c *cobra.Command) (verb, resource string) {
 		}
 	}
 	return verb, resource
+}
+
+// shownResource is the resource a scope verdict or error names. For a leaf of
+// a resource group whose scopes are keyed by group ("fm/project"), that is the
+// group and the leaf as typed (`fm projects`): the bare leaf would name a
+// different command (`get projects` does not exist). Every other command keeps
+// the resource verbResource gives it, so existing verdicts read as before.
+func shownResource(c *cobra.Command, verb, resource string) string {
+	if groupQualifiedLeaf(c, verb) {
+		return c.Parent().Name() + " " + resource
+	}
+	return resource
+}
+
+// groupQualifiedLeaf reports whether c is a leaf of a resource group under
+// verb whose scopes are keyed by group in the canonical table.
+func groupQualifiedLeaf(c *cobra.Command, verb string) bool {
+	if !c.HasParent() || !c.Parent().HasParent() || c.Parent().Name() == verb {
+		return false
+	}
+	return auth.HasResourceScopes(c.Parent().Name() + "/" + c.Name())
 }
 
 // scopeRequirement is what the catalog can say about a command's scopes.
@@ -389,6 +410,16 @@ func scopesForInvocation(c *cobra.Command, verb, resource string) ([]string, sco
 			}
 		}
 	}
+	if req == scopeRequirementNone && groupQualifiedLeaf(c, verb) {
+		// A leaf of a resource group (`get fm projects`) is not a direct
+		// resource of its verb either; its scopes are keyed by group in the
+		// canonical table ("fm/project"), as the catalog's nested nodes read them.
+		if v, ok := scopeCatalog()[verb]; ok {
+			if s := auth.ScopesForCommand(verb, c.Parent().Name()+"/"+resource, auth.Access(v.Access)); len(s) > 0 {
+				required, req = s, scopeRequirementKnown
+			}
+		}
+	}
 	extra := flagContributedScopes(c, verb, resource)
 	if len(extra) == 0 || req != scopeRequirementKnown {
 		// Augmenting anything but a known requirement would invent one: a per-call
@@ -494,9 +525,16 @@ func loginScopeAdvice(cfg *config.Config, missing []string) []string {
 		return []string{"re-create your token with: " + strings.Join(missing, ", ")}
 	}
 	level := cfg.GetEffectiveSafetyLevel()
+	// Login also requests the scopes of the development features this
+	// config opts into, so a scope of one is "requested" exactly when the
+	// feature is on.
+	requested := make(map[string]bool)
+	for _, s := range auth.LoginScopes(level, cfg.EnabledDevelopmentFeatures()) {
+		requested[s] = true
+	}
 	var notRequested []string
 	for _, s := range missing {
-		if !loginRequestsScope(level, s) {
+		if !requested[s] {
 			notRequested = append(notRequested, s)
 		}
 	}

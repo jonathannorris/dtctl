@@ -1,0 +1,73 @@
+{
+  "projectKey": "checkout",
+  "featureKey": "new-checkout",
+  "releaseStageKey": "production",
+  "enabled": true,
+  "targeting": {
+    "rules": [
+      {
+        "id": "6f1c2b9e-0000-4000-8000-000000000001",
+        "serve": [
+          {
+            "variantKey": "variation-a",
+            "percentage": 100
+          }
+        ],
+        "conditions": [
+          {
+            "valueType": "STRING",
+            "contextKey": "targetingKey",
+            "operator": "IS",
+            "values": [
+              "user-1",
+              "user-2"
+            ]
+          },
+          {
+            "valueType": "DATE_TIME",
+            "contextKey": "signup.date",
+            "operator": "AFTER",
+            "values": [
+              "1767225600"
+            ]
+          }
+        ]
+      },
+      {
+        "id": "a93d07e1-0000-4000-8000-000000000002",
+        "name": "Everyone else",
+        "serve": [
+          {
+            "variantKey": "baseline",
+            "percentage": 50
+          },
+          {
+            "variantKey": "variation-a",
+            "percentage": 50
+          }
+        ],
+        "rollout": {
+          "steps": [
+            {
+              "effectiveTime": "2026-11-24T21:00:00Z",
+              "percentage": 10
+            },
+            {
+              "effectiveTime": "2026-11-25T21:00:00Z",
+              "percentage": 100,
+              "transition": "LINEAR"
+            }
+          ]
+        },
+        "bucketingKey": "account.id"
+      }
+    ]
+  },
+  "version": 6,
+  "modificationInfo": {
+    "createdBy": "00000000-0000-4000-8000-0000000000a1",
+    "createdTime": "2026-10-01T08:00:00Z",
+    "lastModifiedBy": "00000000-0000-4000-8000-0000000000a2",
+    "lastModifiedTime": "2026-11-03T14:30:00Z"
+  }
+}

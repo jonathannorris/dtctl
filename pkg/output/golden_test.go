@@ -22,6 +22,7 @@ import (
 	"github.com/Dynatrace/dtctl/pkg/resources/dqlprocessorverify"
 	"github.com/Dynatrace/dtctl/pkg/resources/edgeconnect"
 	"github.com/Dynatrace/dtctl/pkg/resources/extension"
+	"github.com/Dynatrace/dtctl/pkg/resources/featuremanagement"
 	"github.com/Dynatrace/dtctl/pkg/resources/gcpconnection"
 	"github.com/Dynatrace/dtctl/pkg/resources/gcpmonitoringconfig"
 	"github.com/Dynatrace/dtctl/pkg/resources/hub"
@@ -3587,5 +3588,289 @@ func TestGolden_GetAction(t *testing.T) {
 			}
 			assertGolden(t, "get/action-single-"+name, buf.String())
 		})
+	}
+}
+
+// fmProjectFixtures returns Feature Management projects covering change
+// requests on and off, maintainers and none, and a resourceContext.
+func fmProjectFixtures() []featuremanagement.Project {
+	created := time.Date(2026, 10, 1, 8, 0, 0, 0, time.UTC)
+	modified := time.Date(2026, 11, 3, 14, 30, 0, 0, time.UTC)
+	on, off := true, false
+	return []featuremanagement.Project{
+		{
+			Key:                   "checkout",
+			Name:                  "Checkout",
+			Description:           "Flags for the checkout flow",
+			Owner:                 "00000000-0000-4000-8000-0000000000a1",
+			Maintainers:           []string{"00000000-0000-4000-8000-0000000000a2", "00000000-0000-4000-8000-0000000000a3"},
+			Settings:              featuremanagement.ProjectSettings{ChangeRequests: &featuremanagement.ChangeRequestSettings{Enabled: &on}},
+			ChangeRequestsDisplay: "on",
+			ModificationInfo: featuremanagement.ModificationInfo{
+				CreatedBy: "00000000-0000-4000-8000-0000000000a1", CreatedTime: created,
+				LastModifiedBy: "00000000-0000-4000-8000-0000000000a2", LastModifiedTime: modified,
+			},
+			LastModifiedDisplay: "2026-11-03 14:30:00",
+			ResourceContext:     &featuremanagement.ResourceContext{Operations: []string{"write", "delete"}},
+			Version:             4,
+		},
+		{
+			Key:                   "payments",
+			Name:                  "Payments",
+			Owner:                 "00000000-0000-4000-8000-0000000000b1",
+			Maintainers:           []string{},
+			Settings:              featuremanagement.ProjectSettings{ChangeRequests: &featuremanagement.ChangeRequestSettings{Enabled: &off}},
+			ChangeRequestsDisplay: "off",
+			ModificationInfo: featuremanagement.ModificationInfo{
+				CreatedBy: "00000000-0000-4000-8000-0000000000b1", CreatedTime: created,
+				LastModifiedBy: "00000000-0000-4000-8000-0000000000b1", LastModifiedTime: created,
+			},
+			LastModifiedDisplay: "2026-10-01 08:00:00",
+			Version:             1,
+		},
+	}
+}
+
+func TestGolden_GetFMProjects(t *testing.T) {
+	projects := fmProjectFixtures()
+
+	formats := map[string]string{
+		"table": "table",
+		"wide":  "wide",
+		"json":  "json",
+		"yaml":  "yaml",
+		"csv":   "csv",
+		"toon":  "toon",
+	}
+
+	for name, format := range formats {
+		t.Run(name, func(t *testing.T) {
+			var buf bytes.Buffer
+			printer := NewPrinterWithWriter(format, &buf)
+			if err := printer.PrintList(projects); err != nil {
+				t.Fatalf("PrintList failed: %v", err)
+			}
+			assertGolden(t, "get/fm-projects-"+name, buf.String())
+		})
+	}
+}
+
+func TestGolden_DescribeFMProject(t *testing.T) {
+	p := fmProjectFixtures()[0]
+
+	formats := map[string]string{
+		"json": "json",
+		"yaml": "yaml",
+		"toon": "toon",
+	}
+
+	for name, format := range formats {
+		t.Run(name, func(t *testing.T) {
+			var buf bytes.Buffer
+			printer := NewPrinterWithWriter(format, &buf)
+			if err := printer.Print(&p); err != nil {
+				t.Fatalf("Print failed: %v", err)
+			}
+			assertGolden(t, "describe/fm-project-"+name, buf.String())
+		})
+	}
+}
+
+// fmGetFormats are the get formats a flat Feature Management resource prints
+// its own fields in.
+var fmGetFormats = []string{"table", "wide", "json", "yaml", "csv", "toon"}
+
+// assertFMGoldens snapshots a Feature Management list in every get format
+// and its first item in every structured describe format.
+func assertFMGoldens[T any](t *testing.T, name string, items []T) {
+	t.Helper()
+	assertFMGoldensIn(t, name, items, fmGetFormats)
+}
+
+// assertFMGoldensIn is assertFMGoldens for a resource whose tabular formats
+// print something else (rule rows, say), so only getFormats are its own.
+func assertFMGoldensIn[T any](t *testing.T, name string, items []T, getFormats []string) {
+	t.Helper()
+	assertFMGetGoldens(t, name, items, getFormats)
+	for _, format := range []string{"json", "yaml", "toon"} {
+		t.Run("describe/"+format, func(t *testing.T) {
+			var buf bytes.Buffer
+			if err := NewPrinterWithWriter(format, &buf).Print(&items[0]); err != nil {
+				t.Fatalf("Print failed: %v", err)
+			}
+			assertGolden(t, "describe/fm-"+name+"-"+format, buf.String())
+		})
+	}
+}
+
+// assertFMGetGoldens snapshots a Feature Management list in getFormats, for
+// a resource that has no describe command.
+func assertFMGetGoldens[T any](t *testing.T, name string, items []T, getFormats []string) {
+	t.Helper()
+	for _, format := range getFormats {
+		t.Run("get/"+format, func(t *testing.T) {
+			var buf bytes.Buffer
+			if err := NewPrinterWithWriter(format, &buf).PrintList(items); err != nil {
+				t.Fatalf("PrintList failed: %v", err)
+			}
+			assertGolden(t, "get/fm-"+name+"s-"+format, buf.String())
+		})
+	}
+}
+
+func TestGolden_FMReleaseStages(t *testing.T) {
+	created := time.Date(2026, 10, 1, 8, 0, 0, 0, time.UTC)
+	modified := time.Date(2026, 11, 3, 14, 30, 0, 0, time.UTC)
+	on := true
+	mi := featuremanagement.ModificationInfo{
+		CreatedBy: "00000000-0000-4000-8000-0000000000a1", CreatedTime: created,
+		LastModifiedBy: "00000000-0000-4000-8000-0000000000a2", LastModifiedTime: modified,
+	}
+	assertFMGoldens(t, "release-stage", []featuremanagement.ReleaseStage{
+		{
+			Key: "production", Name: "Production", Description: "Customer-facing traffic",
+			Type: "PRODUCTION", Guarded: &on, GuardedDisplay: "on", DisplayOrder: 2,
+			ModificationInfo: mi, LastModifiedDisplay: "2026-11-03 14:30:00",
+			ResourceContext: &featuremanagement.ResourceContext{Operations: []string{"write"}},
+			Version:         3,
+		},
+		{
+			Key: "development", Name: "Development", Type: "DEVELOPMENT", GuardedDisplay: "off",
+			ModificationInfo: mi, LastModifiedDisplay: "2026-11-03 14:30:00", Version: 1,
+		},
+	})
+}
+
+func TestGolden_FMFeatures(t *testing.T) {
+	zero, one := 0, 1
+	mi := featuremanagement.ModificationInfo{
+		CreatedBy: "00000000-0000-4000-8000-0000000000a1", CreatedTime: time.Date(2026, 10, 1, 8, 0, 0, 0, time.UTC),
+		LastModifiedBy: "00000000-0000-4000-8000-0000000000a2", LastModifiedTime: time.Date(2026, 11, 3, 14, 30, 0, 0, time.UTC),
+	}
+	assertFMGoldens(t, "feature", []featuremanagement.Feature{
+		{
+			ProjectKey: "checkout", Key: "new-checkout", Name: "New checkout", Description: "One-page checkout",
+			Variants: []featuremanagement.Variant{
+				{Key: "baseline", Name: "Baseline", DisplayOrder: &zero},
+				{Key: "variation-a", Name: "Variation A", DisplayOrder: &one},
+			},
+			VariantsDisplay: "baseline,variation-a",
+			Flags: []featuremanagement.FeatureFlag{
+				{Key: "enabled", Name: "enabled", Type: "BOOLEAN", Variants: map[string]any{"baseline": false, "variation-a": true}},
+				{Key: "button-color", Name: "Button color", Type: "STRING",
+					Variants: map[string]any{"baseline": "blue", "variation-a": "green"},
+					Schema:   map[string]any{"type": "ENUM", "values": []any{"blue", "green"}}},
+			},
+			FlagsDisplay: "2",
+			Owner:        "00000000-0000-4000-8000-0000000000a1", Maintainers: []string{},
+			ModificationInfo: mi, LastModifiedDisplay: "2026-11-03 14:30:00",
+			Status: "ACTIVE", Type: "RELEASE", Version: 5,
+		},
+		{
+			ProjectKey: "checkout", Key: "kill-switch", Name: "Kill switch",
+			Variants: []featuremanagement.Variant{}, Flags: []featuremanagement.FeatureFlag{}, FlagsDisplay: "0",
+			Owner: "00000000-0000-4000-8000-0000000000b1", Maintainers: []string{},
+			ModificationInfo: mi, LastModifiedDisplay: "2026-11-03 14:30:00",
+			Status: "ARCHIVED", Type: "OPS", Version: 1,
+		},
+	})
+}
+
+// The structured formats of get and describe fm feature-targeting print the
+// API's targeting unchanged; the table view is a cmd golden.
+func TestGolden_FMFeatureTargeting(t *testing.T) {
+	mi := featuremanagement.ModificationInfo{
+		CreatedBy: "00000000-0000-4000-8000-0000000000a1", CreatedTime: time.Date(2026, 10, 1, 8, 0, 0, 0, time.UTC),
+		LastModifiedBy: "00000000-0000-4000-8000-0000000000a2", LastModifiedTime: time.Date(2026, 11, 3, 14, 30, 0, 0, time.UTC),
+	}
+	assertFMGoldensIn(t, "feature-targeting", []featuremanagement.FeatureTargeting{
+		{
+			ProjectKey: "checkout", FeatureKey: "new-checkout", ReleaseStageKey: "production", Enabled: true, Version: 6,
+			Targeting: featuremanagement.Targeting{Rules: []featuremanagement.TargetingRule{
+				{ID: "6f1c2b9e-0000-4000-8000-000000000001",
+					Serve: []featuremanagement.VariantDistribution{{VariantKey: "variation-a", Percentage: 100}},
+					Conditions: []featuremanagement.TargetingCondition{
+						{ValueType: "STRING", ContextKey: "targetingKey", Operator: "IS", Values: []any{"user-1", "user-2"}},
+						{ValueType: "DATE_TIME", ContextKey: "signup.date", Operator: "AFTER", Values: []any{"1767225600"}},
+					}},
+				{ID: "a93d07e1-0000-4000-8000-000000000002", Name: "Everyone else", BucketingKey: "account.id",
+					Serve: []featuremanagement.VariantDistribution{{VariantKey: "baseline", Percentage: 50}, {VariantKey: "variation-a", Percentage: 50}},
+					Rollout: &featuremanagement.Rollout{Steps: []featuremanagement.RolloutStep{
+						{EffectiveTime: time.Date(2026, 11, 24, 21, 0, 0, 0, time.UTC), Percentage: 10},
+						{EffectiveTime: time.Date(2026, 11, 25, 21, 0, 0, 0, time.UTC), Percentage: 100, Transition: "LINEAR"},
+					}}},
+			}},
+			ModificationInfo: mi,
+		},
+		{
+			ProjectKey: "checkout", FeatureKey: "new-checkout", ReleaseStageKey: "development", Version: 1,
+			Targeting: featuremanagement.Targeting{Rules: []featuremanagement.TargetingRule{}}, ModificationInfo: mi,
+		},
+	}, []string{"json", "yaml", "toon"})
+}
+
+func TestGolden_FMContextAttributes(t *testing.T) {
+	three := 3
+	mi := featuremanagement.ModificationInfo{
+		CreatedBy: "00000000-0000-4000-8000-0000000000a1", CreatedTime: time.Date(2026, 10, 1, 8, 0, 0, 0, time.UTC),
+		LastModifiedBy: "00000000-0000-4000-8000-0000000000a2", LastModifiedTime: time.Date(2026, 11, 3, 14, 30, 0, 0, time.UTC),
+	}
+	assertFMGoldens(t, "context-attribute", []featuremanagement.ContextAttribute{
+		{
+			Key: "plan-tier", Name: "Plan tier", Description: "Customer plan tier", Schema: `{"type":"string"}`,
+			Type: "STRING", ContextKey: "plan.tier", ProjectKey: "checkout", ModificationInfo: mi, Version: 2,
+			UsageCount: &three, UsagesDisplay: "3", BuiltInDisplay: "no", LastModifiedDisplay: "2026-11-03 14:30:00",
+		},
+		{
+			Key: "targeting-key", Name: "Targeting key", Schema: `{"type":"string"}`,
+			Type: "STRING", ContextKey: "targetingKey", ProjectKey: "checkout", ModificationInfo: mi, Version: 1,
+			BuiltIn: true, UsagesDisplay: "-", BuiltInDisplay: "yes", LastModifiedDisplay: "2026-11-03 14:30:00",
+		},
+	})
+}
+
+// SDK keys print masked values by default: the public identifier, never the secret.
+func TestGolden_FMSDKKeys(t *testing.T) {
+	one := 1
+	mi := &featuremanagement.ModificationInfo{
+		CreatedBy: "00000000-0000-4000-8000-0000000000a1", CreatedTime: time.Date(2026, 10, 1, 8, 0, 0, 0, time.UTC),
+		LastModifiedBy: "00000000-0000-4000-8000-0000000000a1", LastModifiedTime: time.Date(2026, 10, 1, 8, 0, 0, 0, time.UTC),
+	}
+	assertFMGetGoldens(t, "sdk-key", []featuremanagement.SDKKey{
+		{ReleaseStageKey: "production", SDKKey: "dt01.server_us_Abcdefghij.********", Type: "server", ModificationInfo: mi,
+			CreatedDisplay: "2026-10-01 08:00:00", CreatedByDisplay: mi.CreatedBy, Version: &one},
+		{ReleaseStageKey: "production", SDKKey: "dt01.web_us_Klmnopqrst.********", Type: "web", CreatedDisplay: "-"},
+	}, fmGetFormats)
+}
+
+// The structured formats of the override commands print the API's
+// overrides; the table views are cmd goldens.
+func TestGolden_FMOverrides(t *testing.T) {
+	items := []featuremanagement.FeatureMyOverrides{
+		{FeatureKey: "new-checkout", FeatureName: "New checkout", Overrides: []featuremanagement.ReleaseStageMyOverride{
+			{ReleaseStageKey: "development", ReleaseStageName: "Development", VariantKey: "variation-a", VariantName: "Variation A"}}},
+	}
+	structured := []string{"json", "yaml", "toon"}
+	assertFMGetGoldens(t, "override", items, structured)
+
+	on := "variation-a"
+	at := time.Date(2026, 11, 3, 14, 30, 0, 0, time.UTC)
+	for _, tc := range []struct {
+		name string
+		v    any
+	}{
+		{"fm-override-feature", &featuremanagement.FeatureOverrides{FeatureKey: "new-checkout", Overrides: []featuremanagement.MyOverride{
+			{ReleaseStageKey: "development", VariantKey: &on, LastModifiedTime: &at}, {ReleaseStageKey: "production"}}}},
+		{"fm-overrides-summary", &featuremanagement.OverridesSummary{TargetingKeys: []string{"user-1"}, Items: items}},
+	} {
+		for _, format := range structured {
+			t.Run(tc.name+"/"+format, func(t *testing.T) {
+				var buf bytes.Buffer
+				if err := NewPrinterWithWriter(format, &buf).Print(tc.v); err != nil {
+					t.Fatalf("Print failed: %v", err)
+				}
+				assertGolden(t, "describe/"+tc.name+"-"+format, buf.String())
+			})
+		}
 	}
 }

@@ -1,0 +1,12 @@
+Key:           bare
+Name:          Bare
+Project:       checkout
+Type:          OPS
+Status:        ARCHIVED
+Version:       1
+
+Variants:
+  (none)
+
+Flags:
+  (none)

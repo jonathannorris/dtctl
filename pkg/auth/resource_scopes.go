@@ -244,6 +244,24 @@ var ResourceScopes = map[string]AccessScopes{
 	"environment":      platformManagementRead,
 	"license":          platformManagementRead,
 	"license-settings": platformManagementRead,
+
+	// Feature Management (/platform/feature-management/v0.1). Development
+	// tier: these entries feed the catalog and --check-scopes, but login asks
+	// for them only when the feature is opted into (developmentResources).
+	// Keys are group-qualified ("fm/project"), since the leaf names are
+	// generic enough to collide with other resources.
+	"fm/project":           {Read: []string{"feature-management:projects:read"}},
+	"fm/release-stage":     {Read: []string{"feature-management:release-stages:read"}},
+	"fm/feature":           {Read: []string{"feature-management:features:read"}},
+	"fm/feature-targeting": {Read: []string{"feature-management:release-stage-targetings:read"}},
+	"fm/context-attribute": {Read: []string{"feature-management:context-attributes:read"}},
+	"fm/sdk-key":           {Read: []string{"feature-management:sdk-keys:read"}},
+	// The caller's own overrides: the API requires all three read scopes.
+	"fm/override": {Read: []string{
+		"feature-management:projects:read",
+		"feature-management:features:read",
+		"feature-management:release-stages:read",
+	}},
 }
 
 // sharing reads the document's metadata for the ownership check, then works

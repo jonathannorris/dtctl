@@ -1,0 +1,13 @@
+Project:       checkout
+
+Targeting Keys:
+  user-1
+  device-2
+
+Overrides:
+  new-checkout
+    development  variation-a
+    staging      baseline
+
+  pricing
+    development  on

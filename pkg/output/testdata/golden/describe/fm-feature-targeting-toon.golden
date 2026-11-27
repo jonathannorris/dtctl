@@ -1,0 +1,37 @@
+enabled: true
+featureKey: new-checkout
+modificationInfo:
+  createdBy: 00000000-0000-4000-8000-0000000000a1
+  createdTime: "2026-10-01T08:00:00Z"
+  lastModifiedBy: 00000000-0000-4000-8000-0000000000a2
+  lastModifiedTime: "2026-11-03T14:30:00Z"
+projectKey: checkout
+releaseStageKey: production
+targeting:
+  rules[2]:
+    - conditions[2]:
+        - contextKey: targetingKey
+          operator: IS
+          valueType: STRING
+          values[2]: user-1,user-2
+        - contextKey: signup.date
+          operator: AFTER
+          valueType: DATE_TIME
+          values[1]: "1767225600"
+      id: 6f1c2b9e-0000-4000-8000-000000000001
+      serve[1]{percentage,variantKey}:
+        100,variation-a
+    - bucketingKey: account.id
+      id: a93d07e1-0000-4000-8000-000000000002
+      name: Everyone else
+      rollout:
+        steps[2]:
+          - effectiveTime: "2026-11-24T21:00:00Z"
+            percentage: 10
+          - effectiveTime: "2026-11-25T21:00:00Z"
+            percentage: 100
+            transition: LINEAR
+      serve[2]{percentage,variantKey}:
+        50,baseline
+        50,variation-a
+version: 6

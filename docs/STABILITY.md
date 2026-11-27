@@ -210,9 +210,9 @@ deprecation cycle. Nothing stated here is relaxed by reaching 1.0.
 
 ## Summary
 
-- commands: 269 stable, 22 experimental, 16 development
+- commands: 269 stable, 22 experimental, 31 development
 - global flags (accepted on every command): 11
-- entries below (commands + flags): 980
+- entries below (commands + flags): 1003
 
 ## Surface
 
@@ -328,6 +328,7 @@ config set                           stable
 config set-context                   stable
   --description                      stable
   --environment                      stable
+  --fm-project                       experimental  since 0.48.0  (declared)
   --global                           stable
   --min-stability                    stable
   --profile                          stable
@@ -474,6 +475,7 @@ ctx describe                         stable
 ctx set                              stable
   --description                      stable
   --environment                      stable
+  --fm-project                       experimental  since 0.48.0  (declared)
   --global                           stable
   --min-stability                    stable
   --profile                          stable
@@ -585,6 +587,15 @@ describe extension                   stable
   --version                          stable
 describe extension-config            stable
   --config-id                        stable
+describe fm                          development  (opt-in key: feature-management)
+  --project                          development
+describe fm context-attribute        development
+describe fm feature                  development
+describe fm feature-targeting        development
+  --stage                            development
+describe fm overrides                development
+describe fm project                  development
+describe fm release-stage            development
 describe function                    stable
 describe gcp                         stable
 describe gcp connection              stable
@@ -813,6 +824,18 @@ get extension-configs                stable
   --version                          stable
 get extensions                       stable
   --name                             stable
+get fm                               development  (opt-in key: feature-management)
+  --project                          development
+get fm context-attributes            development
+get fm feature-targeting             development
+  --stage                            development
+get fm features                      development
+get fm overrides                     development
+get fm projects                      development
+get fm release-stages                development
+get fm sdk-keys                      development
+  --reveal                           development
+  --type                             development
 get functions                        stable
   --app                              stable
 get gcp                              stable

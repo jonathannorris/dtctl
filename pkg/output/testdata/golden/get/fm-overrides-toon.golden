@@ -1,0 +1,5 @@
+[1]:
+  - featureKey: new-checkout
+    featureName: New checkout
+    overrides[1]{releaseStageKey,releaseStageName,variantKey,variantName}:
+      development,Development,variation-a,Variation A

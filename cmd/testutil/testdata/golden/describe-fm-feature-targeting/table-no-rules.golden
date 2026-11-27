@@ -1,0 +1,8 @@
+Feature:       new-checkout
+Stage:         staging
+Targeting:     off
+Version:       1
+
+No rules.
+
+Default: requests that match no rule get the default defined in code.

@@ -745,7 +745,10 @@ Non-interactive login (CI/CD):
 			}
 
 			// Detect environment and create appropriate OAuth config with safety level
-			oauthConfig := auth.OAuthConfigFromEnvironmentURLWithSafety(environment, safetyLevel)
+			// Development features this invocation opted into add their own
+			// read scopes; with none enabled this is the safety level's set.
+			devEnabled := legacyDevelopmentFeatures(cmdContext(cmd), cfg.EnabledDevelopmentFeatures())
+			oauthConfig := auth.OAuthConfigFromEnvironmentURLForLogin(environment, safetyLevel, devEnabled)
 
 			// Log which environment we detected
 			output.FprintInfo(currentStderr(cmdContext(cmd)), "Detected environment: %s", oauthConfig.Environment)

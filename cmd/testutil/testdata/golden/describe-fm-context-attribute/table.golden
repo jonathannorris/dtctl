@@ -1,0 +1,16 @@
+Key:           plan-tier
+Name:          Plan tier
+Project:       checkout
+Description:   Customer plan tier
+Context Key:   plan.tier
+Type:          STRING
+Built-in:      no
+Schema:        {"type":"string"}
+Rules:         3
+Version:       2
+Created:       2026-10-01 08:00:00 by 00000000-0000-4000-8000-0000000000a1
+Last Modified: 2026-11-03 14:30:00 by 00000000-0000-4000-8000-0000000000a2
+
+Used By:
+  new-checkout  staging, production
+  pricing       production

@@ -280,7 +280,8 @@ func isSensitiveHeader(name string) bool {
 // SetVerbosity sets the verbosity level for logging
 // Level 0: normal (no debug output)
 // Level 1: show request/response summary
-// Level 2+: show full request/response details (sensitive headers always redacted)
+// Level 2+: show full request/response details (sensitive headers always
+// redacted, and SDK key secrets in URLs and bodies; see httpclient.RedactSecrets)
 func (c *Client) SetVerbosity(level int) {
 	if level <= 0 {
 		return
@@ -289,7 +290,7 @@ func (c *Client) SetVerbosity(level int) {
 	c.http.SetPreRequestHook(func(client *resty.Client, req *http.Request) error {
 		var sb strings.Builder
 		sb.WriteString("===> REQUEST <===\n")
-		sb.WriteString(fmt.Sprintf("%s %s\n", req.Method, req.URL))
+		sb.WriteString(fmt.Sprintf("%s %s\n", req.Method, httpclient.RedactSecrets(req.URL.String())))
 		if level >= 2 {
 			sb.WriteString("HEADERS:\n")
 			for k, v := range req.Header {
@@ -300,7 +301,7 @@ func (c *Client) SetVerbosity(level int) {
 				}
 			}
 			if bodyText := readRequestBodyForDebug(req); bodyText != "" {
-				sb.WriteString(fmt.Sprintf("BODY:\n%s\n", bodyText))
+				sb.WriteString(fmt.Sprintf("BODY:\n%s\n", httpclient.RedactSecrets(bodyText)))
 			}
 		}
 		fmt.Fprint(os.Stderr, sb.String())
@@ -321,7 +322,7 @@ func (c *Client) SetVerbosity(level int) {
 					sb.WriteString(fmt.Sprintf("    %s: %s\n", k, strings.Join(v, ", ")))
 				}
 			}
-			sb.WriteString(fmt.Sprintf("BODY:\n%s\n", resp.String()))
+			sb.WriteString(fmt.Sprintf("BODY:\n%s\n", httpclient.RedactSecrets(resp.String())))
 		}
 		fmt.Fprint(os.Stderr, sb.String())
 		return nil

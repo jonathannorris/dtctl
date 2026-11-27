@@ -1,0 +1,26 @@
+Key:           new-checkout
+Name:          New checkout
+Project:       checkout
+Description:   One-page checkout
+Type:          RELEASE
+Status:        ACTIVE
+Owner:         00000000-0000-4000-8000-0000000000a1
+Maintainers:   00000000-0000-4000-8000-0000000000a2
+Version:       5
+Created:       2026-10-01 08:00:00 by 00000000-0000-4000-8000-0000000000a1
+Last Modified: 2026-11-03 14:30:00 by 00000000-0000-4000-8000-0000000000a2
+
+Variants:
+  baseline     Baseline
+  variation-a  Variation A
+
+Flags:
+  enabled (BOOLEAN)
+    baseline:     false
+    variation-a:  true
+
+  button-color (STRING)  Button color
+    Color of the pay button
+    Schema: ENUM
+    baseline:     "blue"
+    variation-a:  "green"

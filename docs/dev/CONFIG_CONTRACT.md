@@ -77,7 +77,9 @@ YAML document. Top-level keys: `apiVersion`, `kind`, `current-context`,
 `readwrite-all` | `dangerously-unrestricted`; empty means `readwrite-all`),
 `description`, `hooks`, `spill`, `query-limits`, `usage-tracking` (bool,
 default off, honored only from the global config, never an auto-discovered
-`.dtctl.yaml`; see [USAGE_TRACKING.md](../USAGE_TRACKING.md)). The Go structs in
+`.dtctl.yaml`; see [USAGE_TRACKING.md](../USAGE_TRACKING.md)),
+`feature-management` (a block of Feature Management defaults; today only
+`project`, the key FM commands use when not given `--project`). The Go structs in
 `sdk/session/config.go` are the schema's source of truth;
 `testdata/contract/v1-full.yaml` exercises every field.
 
