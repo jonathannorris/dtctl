@@ -255,9 +255,10 @@ func onOffString(b bool) string {
 }
 
 // printFMFeatureStages renders the per-stage summary at the end of a
-// feature's describe view: whether targeting is on and how many rules each
-// stage has.
-func printFMFeatureStages(w io.Writer, items []featuremanagement.FeatureTargeting) {
+// feature's describe view: whether targeting is on, how many rules each stage
+// has, and which variants it serves, then the command that shows a stage's
+// rules in full.
+func printFMFeatureStages(w io.Writer, featureKey string, items []featuremanagement.FeatureTargeting) {
 	fmt.Fprintln(w)
 	output.FprintDescribeSection(w, "Release Stages:")
 	if len(items) == 0 {
@@ -274,6 +275,44 @@ func printFMFeatureStages(w io.Writer, items []featuremanagement.FeatureTargetin
 		if n == 1 {
 			rules = "1 rule"
 		}
-		fmt.Fprintf(w, "  %-*s  %-3s  %s\n", width, ft.ReleaseStageKey, onOffString(ft.Enabled), rules)
+		fmt.Fprintf(w, "  %-*s  %-3s  %-7s  serves %s\n", width, ft.ReleaseStageKey, onOffString(ft.Enabled), rules, fmStageServes(ft))
 	}
+	fmt.Fprintln(w)
+	fmt.Fprintf(w, "Rules: dtctl describe fm feature-targeting %s --stage <stage>\n", featureKey)
+}
+
+// fmStageServes says what a stage hands out: the code default while targeting
+// is off or has no rules, else the variants its rules serve in rule order,
+// then the code default unless a rule matches every request. A rule with a
+// rollout does not, since requests outside its percentage fall through.
+func fmStageServes(ft featuremanagement.FeatureTargeting) string {
+	const codeDefault = "the code default"
+	if !ft.Enabled || len(ft.Targeting.Rules) == 0 {
+		return codeDefault
+	}
+	var parts []string
+	seen := map[string]bool{}
+	catchAll := false
+	for _, r := range ft.Targeting.Rules {
+		var serve []string
+		for _, d := range r.Serve {
+			if len(r.Serve) > 1 {
+				serve = append(serve, fmt.Sprintf("%s %v%%", d.VariantKey, d.Percentage))
+			} else {
+				serve = append(serve, d.VariantKey)
+			}
+		}
+		if p := strings.Join(serve, "/"); p != "" && !seen[p] {
+			seen[p] = true
+			parts = append(parts, p)
+		}
+		if len(r.Conditions) == 0 && r.Rollout == nil {
+			catchAll = true
+			break
+		}
+	}
+	if !catchAll {
+		parts = append(parts, codeDefault)
+	}
+	return strings.Join(parts, ", ")
 }

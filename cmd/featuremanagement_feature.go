@@ -118,7 +118,7 @@ Examples:
 				if stages, err := h.ListFeatureTargeting(project, f.Key); err != nil {
 					output.FprintWarning(currentStderr(ctx), "release stage targeting not shown: %v", err)
 				} else {
-					printFMFeatureStages(out, stages)
+					printFMFeatureStages(out, f.Key, stages)
 				}
 				return nil
 			}

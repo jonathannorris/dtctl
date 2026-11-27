@@ -328,9 +328,13 @@ func TestDescribeFMFeatureTargetingTableGolden_NoRules(t *testing.T) {
 
 func TestDescribeFMFeatureStagesGolden(t *testing.T) {
 	var buf bytes.Buffer
-	printFMFeatureStages(&buf, []featuremanagement.FeatureTargeting{
+	printFMFeatureStages(&buf, "new-checkout", []featuremanagement.FeatureTargeting{
 		{ReleaseStageKey: "development"},
 		{ReleaseStageKey: "staging", Targeting: featuremanagement.Targeting{Rules: make([]featuremanagement.TargetingRule, 1)}},
+		{ReleaseStageKey: "qa", Enabled: true, Targeting: featuremanagement.Targeting{Rules: []featuremanagement.TargetingRule{{
+			Serve:      []featuremanagement.VariantDistribution{{VariantKey: "baseline", Percentage: 100}},
+			Conditions: []featuremanagement.TargetingCondition{{ValueType: "STRING", ContextKey: "country", Operator: "IS", Values: []any{"CA"}}},
+		}}}},
 		*fmTargetingForDescribe(),
 	})
 	cmdtestutil.AssertGoldenStripped(t, "describe-fm-feature/stages", buf.String())

@@ -1,5 +1,8 @@
 
 Release Stages:
-  development  off  0 rules
-  staging      off  1 rule
-  production   on   3 rules
+  development  off  0 rules  serves the code default
+  staging      off  1 rule   serves the code default
+  qa           on   1 rule   serves baseline, the code default
+  production   on   3 rules  serves variation-a, baseline 50%/variation-a 50%
+
+Rules: dtctl describe fm feature-targeting new-checkout --stage <stage>
