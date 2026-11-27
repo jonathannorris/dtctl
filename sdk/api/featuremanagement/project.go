@@ -9,11 +9,17 @@ import (
 // take targeting changes through change requests.
 type ChangeRequestSettings struct {
 	Enabled *bool `json:"enabled,omitempty" yaml:"enabled,omitempty"`
+
+	// unknown keeps members this type does not declare (decision 3).
+	unknown unknownFields
 }
 
 // ProjectSettings are a project's settings.
 type ProjectSettings struct {
 	ChangeRequests *ChangeRequestSettings `json:"changeRequests,omitempty" yaml:"changeRequests,omitempty"`
+
+	// unknown keeps members this type does not declare (decision 3).
+	unknown unknownFields
 }
 
 // ProjectDetails is the read model of a project (schema ProjectDetails).
@@ -29,6 +35,9 @@ type ProjectDetails struct {
 	// Version is the optimistic-locking version a write of this project
 	// must send.
 	Version int `json:"version" yaml:"version"`
+
+	// unknown keeps members this type does not declare (decision 3).
+	unknown unknownFields
 }
 
 // ProjectList is one page of projects (schema ProjectList). ListProjects
