@@ -49,7 +49,7 @@ var fileFlagUnreached = map[string]string{
 	"featuremanagement_project_write.go:newCreateFMProjectCmd":                    "a development-tier command, not registered in the probed tree",
 	"featuremanagement_release_stage_write.go:newCreateFMReleaseStageCmd":         "a development-tier command, not registered in the probed tree",
 	"featuremanagement_context_attribute_write.go:newCreateFMContextAttributeCmd": "a development-tier command, not registered in the probed tree",
-	"featuremanagement_apply.go:runFMApply": "apply fm feature and feature-targeting are development-tier commands, not registered in the probed tree",
+	"featuremanagement_apply.go:runFMApply":                                       "apply fm feature and feature-targeting are development-tier commands, not registered in the probed tree",
 }
 
 // TestFileFlagsAreDeclared holds that every flag naming a file a command reads
