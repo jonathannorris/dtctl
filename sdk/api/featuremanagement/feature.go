@@ -43,6 +43,9 @@ type Variant struct {
 	Name            string           `json:"name" yaml:"name"`
 	DisplayOrder    *int             `json:"displayOrder,omitempty" yaml:"displayOrder,omitempty"`
 	ResourceContext *ResourceContext `json:"resourceContext,omitempty" yaml:"resourceContext,omitempty"`
+
+	// unknown keeps members this type does not declare (decision 3).
+	unknown unknownFields
 }
 
 // FeatureFlag is one flag of a feature (schema FeatureFlag): a typed value
@@ -58,6 +61,9 @@ type FeatureFlag struct {
 	// Schema constrains the flag's values. It is one of several shapes,
 	// discriminated by its "type" field, and is kept as decoded.
 	Schema map[string]any `json:"schema,omitempty" yaml:"schema,omitempty"`
+
+	// unknown keeps members this type does not declare (decision 3).
+	unknown unknownFields
 }
 
 // FeatureDetails is the read model of a feature (schema FeatureDetails).
@@ -75,6 +81,9 @@ type FeatureDetails struct {
 	Type             FeatureType      `json:"type" yaml:"type"`
 	ResourceContext  *ResourceContext `json:"resourceContext,omitempty" yaml:"resourceContext,omitempty"`
 	Version          int              `json:"version" yaml:"version"`
+
+	// unknown keeps members this type does not declare (decision 3).
+	unknown unknownFields
 }
 
 // FeatureList is one page of features (schema FeatureList). ListFeatures

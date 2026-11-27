@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"net/http"
 	"strconv"
 
 	"github.com/Dynatrace/dtctl/sdk/httpclient"
@@ -120,13 +121,32 @@ func projectPath(projectKey string, segments ...string) string {
 // goes in the optimistic-locking-version query parameter when set. op names
 // the operation in errors.
 func putOne[T any](ctx context.Context, c *httpclient.Client, op, path string, body any, version string) (*T, error) {
-	req := c.HTTP().R().SetContext(ctx).
-		SetHeader("Content-Type", "application/json").
-		SetBody(body)
+	return send[T](ctx, c, op, http.MethodPut, path, body, version)
+}
+
+// postOne sends a create and decodes the resource it returns.
+func postOne[T any](ctx context.Context, c *httpclient.Client, op, path string, body any) (*T, error) {
+	return send[T](ctx, c, op, http.MethodPost, path, body, "")
+}
+
+// deleteOne sends a delete, which answers 204 with no body.
+func deleteOne(ctx context.Context, c *httpclient.Client, op, path string) error {
+	_, err := send[struct{}](ctx, c, op, http.MethodDelete, path, nil, "")
+	return err
+}
+
+// send is one write: body as JSON (none when nil), the optimistic-locking
+// version as a query parameter when set, and the response decoded into T
+// (the zero T for an empty response).
+func send[T any](ctx context.Context, c *httpclient.Client, op, method, path string, body any, version string) (*T, error) {
+	req := c.HTTP().R().SetContext(ctx)
+	if body != nil {
+		req.SetHeader("Content-Type", "application/json").SetBody(body)
+	}
 	if version != "" {
 		req.SetQueryParam("optimistic-locking-version", version)
 	}
-	resp, err := req.Put(path)
+	resp, err := req.Execute(method, path)
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}
@@ -141,4 +161,10 @@ func putOne[T any](ctx context.Context, c *httpclient.Client, op, path string, b
 		return nil, fmt.Errorf("%s: parse response: %w", op, err)
 	}
 	return &result, nil
+}
+
+// OptimisticLockingVersionResponse is what the writes that return no
+// resource answer: the entity's new optimistic-locking version.
+type OptimisticLockingVersionResponse struct {
+	Version json.Number `json:"version" yaml:"version"`
 }
