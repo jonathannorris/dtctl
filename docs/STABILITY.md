@@ -210,9 +210,9 @@ deprecation cycle. Nothing stated here is relaxed by reaching 1.0.
 
 ## Summary
 
-- commands: 269 stable, 22 experimental, 31 development
+- commands: 269 stable, 22 experimental, 41 development
 - global flags (accepted on every command): 11
-- entries below (commands + flags): 1003
+- entries below (commands + flags): 1048
 
 ## Surface
 
@@ -412,6 +412,17 @@ create extension                     stable
   --file                             stable
   --hub-extension                    stable
   --version                          stable
+create fm                            development  (opt-in key: feature-management)
+  --project                          development
+create fm feature-targeting          development
+  --bucketing-key                    development
+  --condition                        development
+  --name                             development
+  --position                         development
+  --rollout                          development
+  --stage                            development
+  --variant                          development
+  --version                          development
 create gcp                           stable
 create gcp connection                stable
   --dry-run                          stable
@@ -518,6 +529,14 @@ delete document                      stable
 delete edgeconnect                   stable
   --dry-run                          stable
   --yes                              stable
+delete fm                            development  (opt-in key: feature-management)
+  --project                          development
+delete fm feature-targeting          development
+  --all                              development
+  --position                         development
+  --stage                            development
+  --version                          development
+  --yes                              development
 delete gcp                           stable
 delete gcp connection                stable
   --dry-run                          stable
@@ -635,6 +654,11 @@ disable azure                        stable
 disable azure monitoring             stable
   --dry-run                          stable
   --name                             stable
+disable fm                           development  (opt-in key: feature-management)
+  --project                          development
+disable fm feature                   development
+  --stage                            development
+  --version                          development
 disable gcp                          stable
 disable gcp monitoring               stable
   --dry-run                          stable
@@ -688,6 +712,11 @@ enable azure monitoring              stable
   --directoryId                      experimental  since 0.39.0  (declared)
   --dry-run                          stable
   --name                             stable
+enable fm                            development  (opt-in key: feature-management)
+  --project                          development
+enable fm feature                    development
+  --stage                            development
+  --version                          development
 enable gcp                           stable
 enable gcp monitoring                stable
   --dry-run                          stable
@@ -1158,6 +1187,22 @@ update extensions                    stable
   --hub-latest                       stable
   --latest                           stable
   --with-configurations              stable
+update fm                            development  (opt-in key: feature-management)
+  --project                          development
+update fm feature-targeting          development
+  --bucketing-key                    development
+  --clear-rollout                    development
+  --condition                        development
+  --condition-add                    development
+  --condition-clear                  development
+  --condition-remove                 development
+  --move-position                    development
+  --name                             development
+  --position                         development
+  --rollout                          development
+  --stage                            development
+  --variant                          development
+  --version                          development
 update gcp                           stable
 update gcp connection                experimental  since 0.39.0
   --dry-run                          experimental

@@ -64,6 +64,46 @@ func newDescribeFMCmd() *cobra.Command {
 	return c
 }
 
+var createFMCmd = newCreateFMCmd()
+
+func newCreateFMCmd() *cobra.Command {
+	c := newFMGroupCmd("Create Feature Management resources")
+	c.AddCommand(newCreateFMFeatureTargetingCmd())
+	return c
+}
+
+var updateFMCmd = newUpdateFMCmd()
+
+func newUpdateFMCmd() *cobra.Command {
+	c := newFMGroupCmd("Update Feature Management resources")
+	c.AddCommand(newUpdateFMFeatureTargetingCmd())
+	return c
+}
+
+var deleteFMCmd = newDeleteFMCmd()
+
+func newDeleteFMCmd() *cobra.Command {
+	c := newFMGroupCmd("Delete Feature Management resources")
+	c.AddCommand(newDeleteFMFeatureTargetingCmd())
+	return c
+}
+
+var enableFMCmd = newEnableFMCmd()
+
+func newEnableFMCmd() *cobra.Command {
+	c := newFMGroupCmd("Turn Feature Management targeting on")
+	c.AddCommand(newFMFeatureToggleCmd(true))
+	return c
+}
+
+var disableFMCmd = newDisableFMCmd()
+
+func newDisableFMCmd() *cobra.Command {
+	c := newFMGroupCmd("Turn Feature Management targeting off")
+	c.AddCommand(newFMFeatureToggleCmd(false))
+	return c
+}
+
 func init() {
 	// Feature Management is unfinished, so the whole `fm` group of each verb is
 	// a development-tier feature: declared here, attached only when the opt-in
@@ -71,6 +111,11 @@ func init() {
 	// development command (see its doc comment).
 	addDevelopmentCommand(getCmd, getFMCmd, featureManagementDevelopmentFeature)
 	addDevelopmentCommand(describeCmd, describeFMCmd, featureManagementDevelopmentFeature)
+	addDevelopmentCommand(createCmd, createFMCmd, featureManagementDevelopmentFeature)
+	addDevelopmentCommand(updateCmd, updateFMCmd, featureManagementDevelopmentFeature)
+	addDevelopmentCommand(deleteCmd, deleteFMCmd, featureManagementDevelopmentFeature)
+	addDevelopmentCommand(enableCmd, enableFMCmd, featureManagementDevelopmentFeature)
+	addDevelopmentCommand(disableCmd, disableFMCmd, featureManagementDevelopmentFeature)
 }
 
 func newGetFMProjectsCmd() *cobra.Command {

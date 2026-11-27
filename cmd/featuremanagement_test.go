@@ -19,7 +19,7 @@ import (
 // Feature Management is one development feature: a single opt-in must grant
 // the fm group on every verb, or the stability floor keeps blocking the rest.
 func TestFeatureManagementIsOneDevelopmentFeature(t *testing.T) {
-	want := []string{"get fm", "describe fm"}
+	want := []string{"get fm", "describe fm", "create fm", "update fm", "delete fm", "enable fm", "disable fm"}
 	reg := stability.DefaultRegistry()
 	paths := reg.Paths(featureManagementDevelopmentFeature)
 	granted := reg.EnabledPaths(map[string]bool{featureManagementDevelopmentFeature: true})
@@ -36,7 +36,7 @@ func TestFeatureManagementIsOneDevelopmentFeature(t *testing.T) {
 // Without the opt-in the fm group is not in the tree at all.
 func TestFeatureManagementNotRegisteredByDefault(t *testing.T) {
 	applyDevelopmentRegistration(nil)
-	for _, verb := range []string{"get", "describe"} {
+	for _, verb := range []string{"get", "describe", "create", "update", "delete", "enable", "disable"} {
 		if c, _, err := rootCmd.Find([]string{verb, "fm"}); err == nil && c.Name() == "fm" {
 			t.Errorf("%s fm is registered without the opt-in", verb)
 		}
@@ -120,6 +120,36 @@ func TestFeatureManagementScopesResolve(t *testing.T) {
 	msg := (&ScopeError{Verb: verb, Resource: shownResource(c, verb, resource), Missing: fmLeafScopes["projects"]}).Error()
 	if !strings.Contains(msg, `"get fm projects"`) {
 		t.Errorf("scope error = %q, want it to name \"get fm projects\"", msg)
+	}
+}
+
+// The targeting writes read what they validate against, so the catalog lists
+// those read scopes next to the targeting write scope.
+func TestFeatureManagementWriteScopesResolve(t *testing.T) {
+	applyDevelopmentRegistration(map[string]bool{config.DevelopmentAll: true})
+	t.Cleanup(func() { applyDevelopmentRegistration(nil) })
+
+	targeting := []string{"feature-management:release-stage-targetings:read", "feature-management:release-stage-targetings:write"}
+	rule := []string{"feature-management:context-attributes:read", "feature-management:features:read",
+		"feature-management:release-stage-targetings:read", "feature-management:release-stage-targetings:write"}
+	want := map[string][]string{
+		"create fm feature-targeting": rule,
+		"update fm feature-targeting": rule,
+		"delete fm feature-targeting": targeting,
+		"enable fm feature":           targeting,
+		"disable fm feature":          targeting,
+	}
+	verbs := commands.BuildVerbs(rootCmd)
+	for path, scopes := range want {
+		parts := strings.Fields(path)
+		leaf, ok := verbs[parts[0]].Subcommands["fm"].Subcommands[parts[2]]
+		if !ok {
+			t.Errorf("%s is not in the catalog", path)
+			continue
+		}
+		if got := slices.Sorted(slices.Values(leaf.RequiredScopes)); !slices.Equal(got, scopes) {
+			t.Errorf("%s required scopes = %v, want %v", path, got, scopes)
+		}
 	}
 }
 

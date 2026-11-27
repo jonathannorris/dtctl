@@ -337,8 +337,11 @@ A development-tier command is not registered until you opt in to its feature (se
 | Feature | Commands | Scopes requested at login when enabled |
 | --- | --- | --- |
 | `feature-management` | `dtctl get fm ...`, `dtctl describe fm ...` | `feature-management:projects:read`, `feature-management:release-stages:read`, `feature-management:features:read`, `feature-management:release-stage-targetings:read`, `feature-management:context-attributes:read`, `feature-management:sdk-keys:read` |
+| `feature-management` | `dtctl create\|update\|delete fm feature-targeting ...`, `dtctl enable\|disable fm feature ...` | `feature-management:release-stage-targetings:write`, at the `readwrite-all` and `dangerously-unrestricted` safety levels only |
 
 Enable the feature first, then log in again to pick the scopes up: `DTCTL_DEVELOPMENT=feature-management dtctl auth login`. With the feature enabled, `dtctl --check-scopes` reports each `fm` command's requirement; `get fm overrides` and `describe fm overrides` need the projects, features and release-stages read scopes together.
+
+Feature Management configuration is shared, so its writes are refused at `readwrite-mine` and their scopes are not requested there. `create` and `update fm feature-targeting` also read the feature (for its variants) and the project's context attributes (for each condition's value type), so they need `feature-management:features:read` and `feature-management:context-attributes:read` too.
 
 ### Endpoints that accept one of several scopes
 

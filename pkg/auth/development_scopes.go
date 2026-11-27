@@ -33,14 +33,49 @@ func DevelopmentResourceFeatures() map[string]string {
 	return out
 }
 
+// developmentSharedWrites is the access each development-tier resource adds
+// from readwrite-all upward. Feature Management configuration is shared, so
+// its writes are refused at readwrite-mine (design decision 12) and their
+// scopes are not requested there.
+var developmentSharedWrites = map[string][]Access{
+	"fm/feature-targeting": {AccessWrite, AccessDelete},
+}
+
+// developmentCommandScopes is CommandScopes for development-tier commands:
+// what a command needs when its resource's scopes at its access level do not
+// say it. It is kept apart from CommandScopes, whose entries every safety
+// level's login must cover, because login requests these only with the
+// feature's opt-in (LoginScopes).
+var developmentCommandScopes = map[string][]string{
+	// Targeting writes read the stage first, and a rule write also reads the
+	// feature (for its variants) and the context attributes (for each
+	// condition's value type). enable and disable fm feature write the
+	// targeting, not the feature.
+	"create fm/feature-targeting": fmRuleWriteScopes,
+	"update fm/feature-targeting": fmRuleWriteScopes,
+	"delete fm/feature-targeting": fmTargetingWriteScopes,
+	"enable fm/feature":           fmTargetingWriteScopes,
+	"disable fm/feature":          fmTargetingWriteScopes,
+}
+
+var (
+	fmTargetingWriteScopes = []string{
+		"feature-management:release-stage-targetings:read",
+		"feature-management:release-stage-targetings:write",
+	}
+	fmRuleWriteScopes = append(append([]string{}, fmTargetingWriteScopes...),
+		"feature-management:features:read",
+		"feature-management:context-attributes:read",
+	)
+)
+
 // LoginScopes returns the scopes interactive login requests: the safety
 // level's set, plus the scopes of development-tier resources whose feature is
 // in enabled. With nothing enabled it equals GetScopesForSafetyLevel.
 //
-// Only read access is added for now: every safety level grants reads, and the
-// gated resources have no write paths yet. When one gains them, its write
-// scopes join here under the same per-level rules as addMineWrites and
-// addAllExtras.
+// Every level gets the gated resources' read scopes. Their write scopes
+// follow the same per-level rules as addAllExtras: developmentSharedWrites
+// joins from readwrite-all upward.
 func LoginScopes(level config.SafetyLevel, enabled map[string]bool) []string {
 	s := newScopeSet()
 	s.add(safetyLevelScopes(level)...)
@@ -52,6 +87,9 @@ func LoginScopes(level config.SafetyLevel, enabled map[string]bool) []string {
 	for _, resource := range resources {
 		if stability.Enabled(developmentResources[resource], enabled) {
 			s.addResource(resource, AccessRead)
+			if grantsSharedWrites(level) {
+				s.addResource(resource, developmentSharedWrites[resource]...)
+			}
 		}
 	}
 	return s.list
@@ -61,4 +99,13 @@ func LoginScopes(level config.SafetyLevel, enabled map[string]bool) []string {
 // with LoginScopes in place of the safety level's set.
 func OAuthConfigFromEnvironmentURLForLogin(environmentURL string, safetyLevel config.SafetyLevel, enabled map[string]bool) *OAuthConfig {
 	return session.OAuthConfigFromEnvironmentURL(environmentURL, safetyLevel, LoginScopes(safetyLevel, enabled))
+}
+
+// grantsSharedWrites reports whether a safety level allows modifying shared
+// resources: readwrite-all and dangerously-unrestricted.
+func grantsSharedWrites(level config.SafetyLevel) bool {
+	if level == "" {
+		level = config.DefaultSafetyLevel
+	}
+	return level == config.SafetyLevelReadWriteAll || level == config.SafetyLevelDangerouslyUnrestricted
 }

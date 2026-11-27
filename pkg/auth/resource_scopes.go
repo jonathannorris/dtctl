@@ -250,10 +250,15 @@ var ResourceScopes = map[string]AccessScopes{
 	// for them only when the feature is opted into (developmentResources).
 	// Keys are group-qualified ("fm/project"), since the leaf names are
 	// generic enough to collide with other resources.
-	"fm/project":           {Read: []string{"feature-management:projects:read"}},
-	"fm/release-stage":     {Read: []string{"feature-management:release-stages:read"}},
-	"fm/feature":           {Read: []string{"feature-management:features:read"}},
-	"fm/feature-targeting": {Read: []string{"feature-management:release-stage-targetings:read"}},
+	"fm/project":       {Read: []string{"feature-management:projects:read"}},
+	"fm/release-stage": {Read: []string{"feature-management:release-stages:read"}},
+	"fm/feature":       {Read: []string{"feature-management:features:read"}},
+	// A rule delete is a targeting update, so delete needs the write scope.
+	"fm/feature-targeting": {
+		Read:   []string{"feature-management:release-stage-targetings:read"},
+		Write:  []string{"feature-management:release-stage-targetings:write"},
+		Delete: []string{"feature-management:release-stage-targetings:write"},
+	},
 	"fm/context-attribute": {Read: []string{"feature-management:context-attributes:read"}},
 	"fm/sdk-key":           {Read: []string{"feature-management:sdk-keys:read"}},
 	// The caller's own overrides: the API requires all three read scopes.
@@ -297,6 +302,9 @@ var CommandScopes = map[string][]string{
 // lookupCommandScopes finds the CommandScopes entry of verb on resource, by
 // the resource's singular or plural name.
 func lookupCommandScopes(verb, resource string) ([]string, bool) {
+	if scopes, ok := developmentCommandScopes[verb+" "+resource]; ok {
+		return scopes, true
+	}
 	if scopes, ok := CommandScopes[verb+" "+resource]; ok {
 		return scopes, true
 	}
