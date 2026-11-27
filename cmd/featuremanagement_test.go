@@ -152,6 +152,8 @@ func TestFeatureManagementWriteScopesResolve(t *testing.T) {
 		"delete fm context-attribute": {"feature-management:context-attributes:delete", "feature-management:context-attributes:read"},
 		"create fm sdk-key":           {"feature-management:release-stages:read", "feature-management:sdk-keys:read", "feature-management:sdk-keys:write"},
 		"delete fm sdk-key":           {"feature-management:release-stages:read", "feature-management:sdk-keys:delete", "feature-management:sdk-keys:read"},
+		"update fm overrides":         {"feature-management:features:read", "feature-management:projects:read", "feature-management:release-stages:read"},
+		"delete fm overrides":         {"feature-management:features:read", "feature-management:projects:read"},
 	}
 	verbs := commands.BuildVerbs(rootCmd)
 	for path, scopes := range want {

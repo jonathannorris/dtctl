@@ -59,11 +59,17 @@ type fmTargetingWrite struct {
 // shared, so every write but the caller's own overrides is checked with
 // OwnershipShared (design decision 12): readwrite-mine refuses it.
 func setupFMWrite(cmd *cobra.Command, op safety.Operation) (*config.Config, string, *featuremanagement.Handler, output.Printer, error) {
+	return setupFMWriteAs(cmd, op, safety.OwnershipShared)
+}
+
+// setupFMWriteAs is setupFMWrite for a resource of the given ownership: the
+// caller's own overrides are OwnershipOwn, so readwrite-mine allows them.
+func setupFMWriteAs(cmd *cobra.Command, op safety.Operation, ownership safety.ResourceOwnership) (*config.Config, string, *featuremanagement.Handler, output.Printer, error) {
 	cfg, err := loadConfig(cmdContext(cmd))
 	if err != nil {
 		return nil, "", nil, nil, err
 	}
-	if err := checkFMSafety(cmdContext(cmd), cfg, op, safety.OwnershipShared); err != nil {
+	if err := checkFMSafety(cmdContext(cmd), cfg, op, ownership); err != nil {
 		return nil, "", nil, nil, err
 	}
 	project, err := resolveFMProject(cmd, cfg)

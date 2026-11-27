@@ -84,6 +84,7 @@ func newUpdateFMCmd() *cobra.Command {
 	c.AddCommand(newUpdateFMProjectCmd())
 	c.AddCommand(newUpdateFMReleaseStageCmd())
 	c.AddCommand(newUpdateFMContextAttributeCmd())
+	c.AddCommand(newUpdateFMOverridesCmd())
 	c.AddCommand(newUpdateFMFeatureCmd())
 	c.AddCommand(newUpdateFMFeatureTargetingCmd())
 	return c
@@ -97,6 +98,7 @@ func newDeleteFMCmd() *cobra.Command {
 	c.AddCommand(newDeleteFMReleaseStageCmd())
 	c.AddCommand(newDeleteFMContextAttributeCmd())
 	c.AddCommand(newDeleteFMSDKKeyCmd())
+	c.AddCommand(newDeleteFMOverridesCmd())
 	c.AddCommand(newDeleteFMFeatureCmd())
 	c.AddCommand(newDeleteFMFeatureTargetingCmd())
 	return c

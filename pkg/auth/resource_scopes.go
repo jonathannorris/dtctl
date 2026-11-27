@@ -282,11 +282,21 @@ var ResourceScopes = map[string]AccessScopes{
 		Delete: []string{"feature-management:sdk-keys:delete"},
 	},
 	// The caller's own overrides: the API requires all three read scopes.
-	"fm/override": {Read: []string{
-		"feature-management:projects:read",
-		"feature-management:features:read",
-		"feature-management:release-stages:read",
-	}},
+	// The caller's own overrides are written with read scopes: the API
+	// gates them by who is signed in, not by a write scope.
+	"fm/override": {
+		Read: []string{
+			"feature-management:projects:read",
+			"feature-management:features:read",
+			"feature-management:release-stages:read",
+		},
+		Write: []string{
+			"feature-management:projects:read",
+			"feature-management:features:read",
+			"feature-management:release-stages:read",
+		},
+		Delete: []string{"feature-management:projects:read", "feature-management:features:read"},
+	},
 }
 
 // sharing reads the document's metadata for the ownership check, then works

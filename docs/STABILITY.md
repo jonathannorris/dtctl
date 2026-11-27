@@ -210,9 +210,9 @@ deprecation cycle. Nothing stated here is relaxed by reaching 1.0.
 
 ## Summary
 
-- commands: 269 stable, 22 experimental, 55 development
+- commands: 269 stable, 22 experimental, 57 development
 - global flags (accepted on every command): 11
-- entries below (commands + flags): 1131
+- entries below (commands + flags): 1142
 
 ## Surface
 
@@ -574,6 +574,10 @@ delete fm feature-targeting          development
   --position                         development
   --stage                            development
   --version                          development
+  --yes                              development
+delete fm overrides                  development
+  --all                              development
+  --targeting-keys                   development
   --yes                              development
 delete fm project                    development
   --yes                              development
@@ -1271,6 +1275,13 @@ update fm feature-targeting          development
   --stage                            development
   --variant                          development
   --version                          development
+update fm overrides                  development
+  --add-targeting-key                development
+  --clear                            development
+  --remove-targeting-key             development
+  --stage                            development
+  --targeting-keys                   development
+  --variant                          development
 update fm project                    development
   --change-requests                  development
   --description                      development

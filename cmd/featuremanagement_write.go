@@ -3,6 +3,7 @@ package cmd
 import (
 	"context"
 	"fmt"
+	"reflect"
 
 	"github.com/spf13/cobra"
 
@@ -30,6 +31,9 @@ func printFMWrite(ctx context.Context, printer output.Printer, verb, resource, m
 	}
 	if ap := enrichAgent(printer, verb, resource); ap != nil && !changed {
 		ap.Context().Suggestions = append(ap.Context().Suggestions, fmNoChangeSuggestion)
+	}
+	if rv := reflect.ValueOf(v); rv.Kind() == reflect.Slice {
+		return printer.PrintList(v)
 	}
 	return printer.Print(v)
 }
