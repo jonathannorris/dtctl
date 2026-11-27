@@ -266,6 +266,18 @@ func TestDescribeFMFeatureTableGolden(t *testing.T) {
 	cmdtestutil.AssertGoldenStripped(t, "describe-fm-feature/table", buf.String())
 }
 
+func TestDescribeFMFeature_VariantNameOnlyWhenItDiffers(t *testing.T) {
+	var buf bytes.Buffer
+	printFMFeatureDescribe(&buf, &featuremanagement.Feature{
+		ProjectKey: "checkout", Key: "f", Name: "F", Status: "ACTIVE", Type: "RELEASE", Version: 1,
+		Variants: []featuremanagement.Variant{{Key: "disabled", Name: "disabled"}, {Key: "var-a", Name: "Var a"}},
+	})
+	out := buf.String()
+	if !strings.Contains(out, "\n  disabled\n") || !strings.Contains(out, "  var-a     Var a\n") {
+		t.Errorf("variants section:\n%s", out)
+	}
+}
+
 func TestDescribeFMFeatureTableGolden_Empty(t *testing.T) {
 	var buf bytes.Buffer
 	printFMFeatureDescribe(&buf, &featuremanagement.Feature{

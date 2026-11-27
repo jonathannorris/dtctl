@@ -164,6 +164,12 @@ func printFMFeatureDescribe(w io.Writer, f *featuremanagement.Feature) {
 		fmt.Fprintln(w, "  (none)")
 	}
 	for _, v := range f.Variants {
+		// A variant created from flags is named after its key; print the name
+		// only when it adds something, as for flags below.
+		if v.Name == "" || v.Name == v.Key {
+			fmt.Fprintf(w, "  %s\n", v.Key)
+			continue
+		}
 		fmt.Fprintf(w, "  %-*s  %s\n", variantWidth, v.Key, v.Name)
 	}
 
