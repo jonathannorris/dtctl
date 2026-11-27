@@ -11,12 +11,12 @@ var disableCmd = newDisableCmd()
 func newDisableCmd() *cobra.Command {
 	c := &cobra.Command{
 		Use:   "disable",
-		Short: "Disable cloud monitoring configurations",
-		Long: `Disable a cloud monitoring configuration by setting it and all its credentials
-to disabled in a single step.
+		Short: "Disable a resource",
+		Long: `Turn a resource off without deleting it. This is the inverse of 'dtctl enable'.
 
-This is the inverse of 'dtctl enable'. The monitoring configuration and linked
-connection are preserved — only the enabled flag is toggled off.
+For cloud monitoring, it sets the monitoring configuration and all its
+credentials to disabled in a single step. The monitoring configuration and
+linked connection are preserved; only the enabled flag is toggled off.
 
 Available resources:
   aws monitoring          Disable AWS monitoring configuration

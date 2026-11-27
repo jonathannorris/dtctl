@@ -213,7 +213,7 @@ _read-only | access: read_
 
 ## disable
 
-Disable cloud monitoring configurations
+Disable a resource
 
 _mutating | access: write | safety: OperationUpdate_
 
@@ -271,7 +271,7 @@ Subcommands:
 
 ## enable
 
-Enable cloud monitoring configurations
+Enable a resource
 
 _mutating | access: write | safety: OperationUpdate_
 

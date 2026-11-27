@@ -11,12 +11,11 @@ var enableCmd = newEnableCmd()
 func newEnableCmd() *cobra.Command {
 	c := &cobra.Command{
 		Use:   "enable",
-		Short: "Enable cloud monitoring configurations",
-		Long: `Enable a cloud monitoring configuration by optionally updating the connection
-credentials and enabling the monitoring config in a single step.
+		Short: "Enable a resource",
+		Long: `Turn a resource on without changing the rest of its configuration.
 
-This is a convenience command that combines two operations:
-  1. Updates the cloud connection with authentication details (service account, directory/app ID) — optional
+For cloud monitoring, this is a convenience command that combines two operations:
+  1. Updates the cloud connection with authentication details (service account, directory/app ID); optional
   2. Enables the monitoring configuration and its credentials
 
 Available resources:
