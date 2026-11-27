@@ -115,3 +115,30 @@ func projectPath(projectKey string, segments ...string) string {
 	}
 	return path
 }
+
+// putOne sends a replacing write and decodes the resource it returns. version
+// goes in the optimistic-locking-version query parameter when set. op names
+// the operation in errors.
+func putOne[T any](ctx context.Context, c *httpclient.Client, op, path string, body any, version string) (*T, error) {
+	req := c.HTTP().R().SetContext(ctx).
+		SetHeader("Content-Type", "application/json").
+		SetBody(body)
+	if version != "" {
+		req.SetQueryParam("optimistic-locking-version", version)
+	}
+	resp, err := req.Put(path)
+	if err != nil {
+		return nil, fmt.Errorf("%s: %w", op, err)
+	}
+	if err := httpclient.CheckResponse(resp); err != nil {
+		return nil, fmt.Errorf("%s: %w", op, err)
+	}
+	var result T
+	if len(resp.Body()) == 0 {
+		return &result, nil
+	}
+	if err := json.Unmarshal(resp.Body(), &result); err != nil {
+		return nil, fmt.Errorf("%s: parse response: %w", op, err)
+	}
+	return &result, nil
+}

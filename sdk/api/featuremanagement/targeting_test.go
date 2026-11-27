@@ -2,8 +2,12 @@ package featuremanagement
 
 import (
 	"context"
+	"encoding/json"
+	"errors"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"reflect"
 	"testing"
 	"time"
 
@@ -77,5 +81,92 @@ func TestListFeatureTargeting_Path(t *testing.T) {
 	}
 	if len(list.Items) != 1 || list.Items[0].ReleaseStageKey != "production" {
 		t.Errorf("items = %+v", list.Items)
+	}
+}
+
+func TestTargetingRoundTripKeepsUnknownMembers(t *testing.T) {
+	in := `{"rules":[{"id":"r1","futureRuleField":{"a":1},"serve":[{"variantKey":"on","percentage":100,"weightHint":3}],
+	  "conditions":[{"valueType":"STRING","contextKey":"k","operator":"IS","values":["x"],"caseInsensitive":true}],
+	  "rollout":{"steps":[{"effectiveTime":"2026-11-24T21:00:00Z","percentage":10,"jitter":"5m"}],"hold":false}}],
+	  "defaultServe":"off"}`
+	var tg Targeting
+	if err := json.Unmarshal([]byte(in), &tg); err != nil {
+		t.Fatal(err)
+	}
+	out, err := json.Marshal(tg)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var got, want any
+	_ = json.Unmarshal(out, &got)
+	_ = json.Unmarshal([]byte(in), &want)
+	if !reflect.DeepEqual(got, want) {
+		t.Errorf("round trip lost members:\n got %s\nwant %s", out, in)
+	}
+}
+
+func TestTargetingWithoutUnknownMembersKeepsFieldOrder(t *testing.T) {
+	r := TargetingRule{ID: "r1", Name: "n", Serve: []VariantDistribution{{VariantKey: "on", Percentage: 100}}}
+	out, err := json.Marshal(r)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if want := `{"id":"r1","name":"n","serve":[{"variantKey":"on","percentage":100}]}`; string(out) != want {
+		t.Errorf("got %s, want %s", out, want)
+	}
+	empty, _ := json.Marshal(Targeting{})
+	if string(empty) != `{"rules":[]}` {
+		t.Errorf("empty targeting = %s, want rules as an empty list", empty)
+	}
+}
+
+func TestUpdateFeatureTargeting_SendsVersionAndBody(t *testing.T) {
+	var method, path, version string
+	var body map[string]any
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		method, path = r.Method, r.URL.EscapedPath()
+		version = r.URL.Query().Get("optimistic-locking-version")
+		_ = json.NewDecoder(r.Body).Decode(&body)
+		_, _ = w.Write([]byte(targetingJSON))
+	}))
+	defer srv.Close()
+
+	c, err := httpclient.New(srv.URL, httpclient.WithToken("dt0c01.test"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	ft, err := NewHandler(c).UpdateFeatureTargeting(context.Background(), "checkout", "new-checkout", "production",
+		FeatureTargetingUpdate{Enabled: false}, "6")
+	if err != nil {
+		t.Fatalf("UpdateFeatureTargeting: %v", err)
+	}
+	if method != http.MethodPut || version != "6" {
+		t.Errorf("method = %s, version = %q", method, version)
+	}
+	if want := BasePath + "/projects/checkout/features/new-checkout/release-stage-targeting/production"; path != want {
+		t.Errorf("path = %q, want %q", path, want)
+	}
+	if body["enabled"] != false || fmt.Sprint(body["targeting"]) != "map[rules:[]]" {
+		t.Errorf("body = %v", body)
+	}
+	if ft.Version != 6 {
+		t.Errorf("result = %+v", ft)
+	}
+}
+
+func TestUpdateFeatureTargeting_ConflictIsTyped(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusConflict)
+		_, _ = w.Write([]byte(`{"error":{"code":409,"message":"Optimistic locking failed"}}`))
+	}))
+	defer srv.Close()
+
+	c, err := httpclient.New(srv.URL, httpclient.WithToken("dt0c01.test"), httpclient.WithRetry(0, 0, 0))
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, err = NewHandler(c).UpdateFeatureTargeting(context.Background(), "checkout", "f", "production", FeatureTargetingUpdate{}, "3")
+	if !errors.Is(err, httpclient.ErrConflict) {
+		t.Fatalf("err = %v, want ErrConflict", err)
 	}
 }

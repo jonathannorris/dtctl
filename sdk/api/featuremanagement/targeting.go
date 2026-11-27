@@ -41,12 +41,18 @@ type TargetingCondition struct {
 	ContextKey string             `json:"contextKey" yaml:"contextKey"`
 	Operator   string             `json:"operator" yaml:"operator"`
 	Values     []any              `json:"values,omitempty" yaml:"values,omitempty"`
+
+	// unknown keeps members this type does not declare (decision 3).
+	unknown unknownFields
 }
 
 // VariantDistribution is the share of a rule's matches served one variant.
 type VariantDistribution struct {
 	VariantKey string  `json:"variantKey" yaml:"variantKey"`
 	Percentage float64 `json:"percentage" yaml:"percentage"`
+
+	// unknown keeps members this type does not declare (decision 3).
+	unknown unknownFields
 }
 
 // RolloutStep is one step of a rollout: the percentage of a rule's matches
@@ -55,11 +61,17 @@ type RolloutStep struct {
 	EffectiveTime time.Time         `json:"effectiveTime" yaml:"effectiveTime"`
 	Percentage    float64           `json:"percentage" yaml:"percentage"`
 	Transition    RolloutTransition `json:"transition,omitempty" yaml:"transition,omitempty"`
+
+	// unknown keeps members this type does not declare (decision 3).
+	unknown unknownFields
 }
 
 // Rollout is a rule's percentage rollout schedule.
 type Rollout struct {
 	Steps []RolloutStep `json:"steps" yaml:"steps"`
+
+	// unknown keeps members this type does not declare (decision 3).
+	unknown unknownFields
 }
 
 // TargetingRule is one rule of a stage's targeting. Rules are evaluated in
@@ -73,11 +85,17 @@ type TargetingRule struct {
 	Conditions   []TargetingCondition  `json:"conditions,omitempty" yaml:"conditions,omitempty"`
 	Rollout      *Rollout              `json:"rollout,omitempty" yaml:"rollout,omitempty"`
 	BucketingKey string                `json:"bucketingKey,omitempty" yaml:"bucketingKey,omitempty"`
+
+	// unknown keeps members this type does not declare (decision 3).
+	unknown unknownFields
 }
 
 // Targeting is the ordered rule list of one stage.
 type Targeting struct {
 	Rules []TargetingRule `json:"rules" yaml:"rules"`
+
+	// unknown keeps members this type does not declare (decision 3).
+	unknown unknownFields
 }
 
 // FeatureTargetingDetails is a feature's targeting in one release stage
@@ -121,4 +139,103 @@ func (h *Handler) GetFeatureTargeting(ctx context.Context, projectKey, featureKe
 	return getOne[FeatureTargetingDetails](ctx, h.client,
 		fmt.Sprintf("get targeting of feature %q in release stage %q of project %q", featureKey, releaseStageKey, projectKey),
 		projectPath(projectKey, "features", httpclient.PathSegment(featureKey), "release-stage-targeting", httpclient.PathSegment(releaseStageKey)), addFields)
+}
+
+// The targeting types are read and sent back on every targeting write, so
+// each keeps the members it does not declare (see unknownFields).
+
+func (c *TargetingCondition) UnmarshalJSON(data []byte) error {
+	type plain TargetingCondition
+	u, err := decodeKeepingUnknown(data, (*plain)(c))
+	c.unknown = u
+	return err
+}
+
+func (c TargetingCondition) MarshalJSON() ([]byte, error) {
+	type plain TargetingCondition
+	return encodeKeepingUnknown(plain(c), c.unknown)
+}
+
+func (d *VariantDistribution) UnmarshalJSON(data []byte) error {
+	type plain VariantDistribution
+	u, err := decodeKeepingUnknown(data, (*plain)(d))
+	d.unknown = u
+	return err
+}
+
+func (d VariantDistribution) MarshalJSON() ([]byte, error) {
+	type plain VariantDistribution
+	return encodeKeepingUnknown(plain(d), d.unknown)
+}
+
+func (s *RolloutStep) UnmarshalJSON(data []byte) error {
+	type plain RolloutStep
+	u, err := decodeKeepingUnknown(data, (*plain)(s))
+	s.unknown = u
+	return err
+}
+
+func (s RolloutStep) MarshalJSON() ([]byte, error) {
+	type plain RolloutStep
+	return encodeKeepingUnknown(plain(s), s.unknown)
+}
+
+func (r *Rollout) UnmarshalJSON(data []byte) error {
+	type plain Rollout
+	u, err := decodeKeepingUnknown(data, (*plain)(r))
+	r.unknown = u
+	return err
+}
+
+func (r Rollout) MarshalJSON() ([]byte, error) {
+	type plain Rollout
+	return encodeKeepingUnknown(plain(r), r.unknown)
+}
+
+func (r *TargetingRule) UnmarshalJSON(data []byte) error {
+	type plain TargetingRule
+	u, err := decodeKeepingUnknown(data, (*plain)(r))
+	r.unknown = u
+	return err
+}
+
+func (r TargetingRule) MarshalJSON() ([]byte, error) {
+	type plain TargetingRule
+	return encodeKeepingUnknown(plain(r), r.unknown)
+}
+
+func (t *Targeting) UnmarshalJSON(data []byte) error {
+	type plain Targeting
+	u, err := decodeKeepingUnknown(data, (*plain)(t))
+	t.unknown = u
+	return err
+}
+
+func (t Targeting) MarshalJSON() ([]byte, error) {
+	type plain Targeting
+	if t.Rules == nil {
+		// rules is required: a stage with no rules is an empty list, never null.
+		t.Rules = []TargetingRule{}
+	}
+	return encodeKeepingUnknown(plain(t), t.unknown)
+}
+
+// FeatureTargetingUpdate is the body of a targeting write (schema
+// FeatureReleaseStageTargetingUpdate). It replaces the stage's whole
+// targeting: send every rule back, existing ids unchanged, since a rule that
+// loses its id gets a new one and re-buckets its users.
+type FeatureTargetingUpdate struct {
+	Enabled   bool      `json:"enabled" yaml:"enabled"`
+	Targeting Targeting `json:"targeting" yaml:"targeting"`
+}
+
+// UpdateFeatureTargeting replaces a feature's targeting in one release stage
+// (updateFeatureReleaseStageTargeting). optimisticLockingVersion is the
+// version the caller read; the server answers 409 (httpclient.ErrConflict)
+// when the stage changed since. An empty version sends none.
+func (h *Handler) UpdateFeatureTargeting(ctx context.Context, projectKey, featureKey, releaseStageKey string, body FeatureTargetingUpdate, optimisticLockingVersion string) (*FeatureTargetingDetails, error) {
+	return putOne[FeatureTargetingDetails](ctx, h.client,
+		fmt.Sprintf("update targeting of feature %q in release stage %q of project %q", featureKey, releaseStageKey, projectKey),
+		projectPath(projectKey, "features", httpclient.PathSegment(featureKey), "release-stage-targeting", httpclient.PathSegment(releaseStageKey)),
+		body, optimisticLockingVersion)
 }
