@@ -99,7 +99,7 @@ func (h *Handler) DeleteContextAttribute(projectKey, keyOrName string) (string, 
 		for i, u := range usage {
 			features[i] = u.FeatureKey
 		}
-		return "", fmt.Errorf("context attribute %s is still used by the targeting of %s; remove those conditions first (see 'dtctl describe fm context-attribute %s')",
+		return "", fmt.Errorf("context attribute %s is still used by the targeting of %s; remove it from those rules' conditions and bucketing keys first (see 'dtctl describe fm context-attribute %s')",
 			a.Key, strings.Join(features, ", "), a.Key)
 	}
 	return a.Key, h.sdk.DeleteContextAttribute(context.Background(), projectKey, a.Key)
